@@ -2,9 +2,7 @@ from __future__ import annotations
 
 from typing import Any, Dict, Iterable, Optional, cast
 
-from dilib import di_config
-from dilib import specs
-from dilib import utils
+from dilib import di_config, specs, utils
 
 
 class ConfigProxy:

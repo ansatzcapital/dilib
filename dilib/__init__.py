@@ -19,8 +19,8 @@ from dilib.specs import (
     Singleton,
     SingletonDict,
     SingletonList,
-    SingletonTuple,
     SingletonMixin,
+    SingletonTuple,
     Spec,
     SpecID,
 )

@@ -3,9 +3,7 @@ from __future__ import annotations
 import datetime
 from typing import Any, Dict, Iterable, Optional, Set, Type, Union
 
-from dilib import errors
-from dilib import specs
-from dilib import utils
+from dilib import errors, specs, utils
 
 PRIMITIVE_TYPES = (
     type(None),
