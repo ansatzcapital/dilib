@@ -2,12 +2,12 @@
 
 Dependency injection (DI) library
 
-<!--
-TODO: Enable
 [![PyPI version](https://badge.fury.io/py/dilib.svg)](https://badge.fury.io/py/dilib)
 [![PyPI Supported Python Versions](https://img.shields.io/pypi/pyversions/dilib.svg)](https://pypi.python.org/pypi/dilib/)
-[![GitHub Actions (Tests)](https://github.com/?/dilib/workflows/Tests/badge.svg)](https://github.com/?/dilib)
-[![codecov](https://codecov.io/gh/?/dilib/branch/main/graph/badge.svg?token=X)](https://codecov.io/gh/?/dilib)
+[![GitHub Actions (Tests)](https://github.com/ansatzcapital/dilib/workflows/Test/badge.svg)](https://github.com/ansatzcapital/dilib)
+<!--
+TODO: Enable
+[![codecov](https://codecov.io/gh/ansatzcapital/dilib/branch/main/graph/badge.svg?token=X)](https://codecov.io/gh/ansatzcapital/dilib)
 -->
 
 ## About DI
