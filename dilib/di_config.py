@@ -127,6 +127,10 @@ class Config:
 
         self._load(**local_inputs)
 
+    # For mypy
+    def __call__(self, *args, **kwargs):
+        return None
+
     def _get_all_global_input_keys(
         self, all_global_input_keys: Optional[Dict[str, specs.SpecID]] = None
     ) -> Set[str]:

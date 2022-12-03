@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Dict, Iterable, Optional, cast
+from typing import Any, Dict, Iterable, Optional, Union, cast
 
 from dilib import di_config, specs, utils
 
@@ -36,7 +36,7 @@ class Container:
         self._config = config
         self._config.freeze()
 
-        self._instance_cache: Dict[str, Any] = {}
+        self._instance_cache: Dict[Union[str, int], Any] = {}
 
     def _process_arg(self, config: di_config.Config, arg: Any) -> Any:
         if isinstance(arg, specs.Spec):
@@ -96,14 +96,13 @@ class Container:
         if isinstance(spec, specs.Object):
             return spec.obj
         elif isinstance(spec, specs.Singleton):
-            key = spec.spec_id
             try:
-                return self._instance_cache[key]
+                return self._instance_cache[spec.spec_id]
             except KeyError:
                 pass
 
             instance = self._materialize_spec(config, spec).instantiate()
-            self._instance_cache[key] = instance
+            self._instance_cache[spec.spec_id] = instance
             return instance
         elif isinstance(spec, specs.Prototype):
             spec = cast(specs.Prototype, spec)

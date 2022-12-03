@@ -64,7 +64,7 @@ def test_perturb_basic():
     config0 = BasicConfig().get()
 
     config0.x = 2
-    assert config0.x.obj == 2  # noqa
+    assert config0.x.obj == 2  # type: ignore
 
     # No class-level interactions
     config1 = BasicConfig().get()
@@ -153,10 +153,10 @@ def test_perturb_nested_config_attrs():
     config.parent_config1.some_str1 = "def"
 
     # noinspection PyUnresolvedReferences
-    assert config.some_str0.obj == "hello"
+    assert config.some_str0.obj == "hello"  # type: ignore
     assert config.parent_config1.basic_config.x.obj == 100
     # noinspection PyUnresolvedReferences
-    assert config.parent_config1.some_str1.obj == "def"
+    assert config.parent_config1.some_str1.obj == "def"  # type: ignore
 
 
 def test_perturb_nested_config_strs():

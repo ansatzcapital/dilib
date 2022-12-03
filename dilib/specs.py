@@ -9,7 +9,7 @@ SpecID = int
 
 def instantiate(cls: type, *args, **kwargs) -> Any:
     """Instantiate obj from Spec parts."""
-    obj = object.__new__(cls)
+    obj: Any = object.__new__(cls)
     try:
         obj.__init__(*args, **kwargs)
     except TypeError as exc:
@@ -38,6 +38,10 @@ class Spec:
 
     def __getattr__(self, attr: str) -> AttrFuture:
         return AttrFuture(self.spec_id, [attr])
+
+    # For mypy
+    def __call__(self, *args, **kwargs):
+        return None
 
     @staticmethod
     def _get_next_spec_id() -> SpecID:
