@@ -9,7 +9,6 @@ on:
 permissions:
   contents: read
 
-# TODO: Re-enable all envs
 jobs:
   build:
     runs-on: ${{ matrix.platform }}
@@ -18,11 +17,11 @@ jobs:
       matrix:
         # https://help.github.com/articles/virtual-environments-for-github-actions
         platform:
-          - ubuntu-latest  # ubuntu-20.04
-        #          - macos-latest  # macOS-11
-        #          - windows-latest  # windows-2022
-        #        python-version: ['3.7', '3.8', '3.9', '3.10', '3.11', '3.12-dev', 'pypy-2.7', 'pypy-3.7', 'pypy-3.8', 'pypy-3.9']
-        python-version: ['3.7', '3.8']
+          - ubuntu-latest
+          - macos-latest  # macOS-11
+          - windows-latest  # windows-2022
+        # TODO: Add 'pypy-3.7', etc.?
+        python-version: ['3.7', '3.8', '3.9', '3.10', '3.11', '3.12-dev']
 
     steps:
       - uses: actions/checkout@v3
@@ -30,10 +29,7 @@ jobs:
       - uses: actions/checkout@v1
         if: ${{ startsWith(matrix.python-version, 'pypy-') }}
         # Using actions/checkout@v2 or later with pypy causes an error
-        # https://foss.heptapod.net/pypy/pypy/-/issues/3640
-        # py.error.ENOENT: [No such file or directory]:
-        # listdir('/home/runner/work/tox-gh-actions/tox-gh-actions/.tox/dist/
-        # warnings.warn(f\'"{wd.path}" is shallow and may cause errors\')',)
+        # (see https://foss.heptapod.net/pypy/pypy/-/issues/3640)
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v4
         with:

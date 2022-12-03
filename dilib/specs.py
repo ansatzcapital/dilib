@@ -149,7 +149,7 @@ class SingletonDict(SingletonCollection):
         >>> values = dilib.SingletonDict({1: x, 2: y})
     """
 
-    def __init__(self, values: Dict = MISSING_DICT, /, **kwargs):
+    def __init__(self, values: Dict = MISSING_DICT, **kwargs):
         if values is MISSING_DICT:
             super().__init__(lambda **kwargs_: kwargs_, **kwargs)
             self._kwargs_style = True
