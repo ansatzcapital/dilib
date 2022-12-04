@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Dict, Generic, Iterable, Optional, Union, TypeVar, cast
+from typing import Any, Dict, Generic, Iterable, Optional, TypeVar, Union, cast
 
 from dilib import di_config, specs, utils
 
