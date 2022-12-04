@@ -14,9 +14,7 @@ from typing import (
     cast,
 )
 
-from dilib import errors
-from dilib import specs
-from dilib import utils
+from dilib import errors, specs, utils
 
 PRIMITIVE_TYPES = (
     type(None),

@@ -17,7 +17,7 @@ def instantiate(cls: type, *args, **kwargs) -> Any:
         return cls(kwargs)
     else:
         # noinspection PyTypeChecker
-        obj = object.__new__(cls)
+        obj: Any = object.__new__(cls)
 
     try:
         obj.__init__(*args, **kwargs)
@@ -151,21 +151,21 @@ def Singleton(cls: Callable[..., T], *args, **kwargs) -> T:
 
 
 # noinspection PyPep8Naming
-def SingletonTuple(*args) -> T:
+def SingletonTuple(*args) -> T:  # type: ignore
     # Cast because the return type will act like a T
     # noinspection PyTypeChecker
     return cast(T, _Singleton(tuple, *args))
 
 
 # noinspection PyPep8Naming
-def SingletonList(*args) -> T:
+def SingletonList(*args) -> T:  # type: ignore
     # Cast because the return type will act like a T
     # noinspection PyTypeChecker
     return cast(T, _Singleton(list, *args))
 
 
 # noinspection PyPep8Naming
-def SingletonDict(**kwargs) -> T:
+def SingletonDict(**kwargs) -> T:  # type: ignore
     # Cast because the return type will act like a T
     # noinspection PyTypeChecker
     return cast(T, _Singleton(dict, **kwargs))

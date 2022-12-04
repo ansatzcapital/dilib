@@ -1,10 +1,8 @@
 from __future__ import annotations
 
-from typing import Any, Dict, Generic, Iterable, Optional, TypeVar, cast
+from typing import Any, Dict, Generic, Iterable, Optional, Union, TypeVar, cast
 
-from dilib import di_config
-from dilib import specs
-from dilib import utils
+from dilib import di_config, specs, utils
 
 T = TypeVar("T", bound=di_config.ConfigProtocol)
 
@@ -41,7 +39,7 @@ class Container(Generic[T]):
         self._config = config
         self._config.freeze()
 
-        self._instance_cache: Dict[str, Any] = {}
+        self._instance_cache: Dict[Union[str, int], Any] = {}
 
     @property
     def config(self) -> T:
@@ -89,14 +87,13 @@ class Container(Generic[T]):
         if isinstance(spec, specs._Object):
             return spec.obj
         elif isinstance(spec, specs._Singleton):
-            key = spec.spec_id
             try:
-                return self._instance_cache[key]
+                return self._instance_cache[spec.spec_id]
             except KeyError:
                 pass
 
             instance = self._materialize_spec(config, spec).instantiate()
-            self._instance_cache[key] = instance
+            self._instance_cache[spec.spec_id] = instance
             return instance
         elif isinstance(spec, specs._Prototype):
             spec = cast(specs._Prototype, spec)

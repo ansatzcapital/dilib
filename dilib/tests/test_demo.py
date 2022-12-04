@@ -96,6 +96,7 @@ def test_perturb_demo():
     config: dilib.Config[CarConfigProtocol] = dilib.get_config(
         CarConfigProtocol, db_address="ava-db"
     )
+    assert isinstance(config.engine_config, EngineConfigProtocol)
     config.engine_config.engine = MockEngine()
     container = dilib.get_container(config)
 
