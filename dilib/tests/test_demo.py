@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import dataclasses
 from typing import List
 
 import dilib
@@ -9,10 +10,12 @@ def get_db_value(_0, _1) -> bool:
     return False
 
 
+@dataclasses.dataclass(frozen=True)
 class Seat:
     pass
 
 
+@dataclasses.dataclass(frozen=True)
 class Engine:
     @property
     def started(self) -> bool:
@@ -22,27 +25,27 @@ class Engine:
         pass
 
 
-class DBEngine(Engine, dilib.SingletonMixin):
-    def __init__(self, db_address: str):
-        self.db_address = db_address
+@dataclasses.dataclass(frozen=True)
+class DBEngine(Engine):
+    db_address: str
 
     @property
     def started(self) -> bool:
         return get_db_value(self.db_address, "engine")
 
 
-class MockEngine(Engine, dilib.SingletonMixin):
+@dataclasses.dataclass(frozen=True)
+class MockEngine(Engine):
     @property
     def started(self) -> bool:
         return True
 
 
-class Car(dilib.SingletonMixin):
-    def __init__(self, seats: List[Seat], engine: Engine):
-        self.seats = seats
-        self.engine = engine
-
-        self.state = 0
+@dataclasses.dataclass()
+class Car:
+    seats: List[Seat]
+    engine: Engine
+    state: int = 0
 
     def drive(self):
         if not self.engine.started:
@@ -53,39 +56,47 @@ class Car(dilib.SingletonMixin):
         self.state = 0
 
 
-# noinspection PyTypeChecker
-class EngineConfig(dilib.Config):
-
-    db_address = dilib.GlobalInput(type_=str, default="ava-db")
-    engine = DBEngine(db_address)  # type: ignore
+class EngineConfigProtocol(dilib.ConfigProtocol):
+    db_address: str = dilib.GlobalInput(type_=str, default="ava-db")
+    engine: Engine = dilib.Singleton(DBEngine, db_address=db_address)
 
 
-# noinspection PyTypeChecker
-class CarConfig(dilib.Config):
-
-    engine_config = EngineConfig()
-
-    seat_cls = dilib.Object(Seat)
-    seats = dilib.Prototype(
-        lambda cls, n: [cls() for _ in range(n)], seat_cls, 2
+class CarConfigProtocol(dilib.ConfigProtocol):
+    engine_config: EngineConfigProtocol = dilib.ConfigSpec(
+        EngineConfigProtocol
     )
 
-    car = Car(seats, engine=engine_config.engine)  # type: ignore
+    seat0: Seat = dilib.Singleton(Seat)
+    seat1: Seat = dilib.Singleton(Seat)
+    seats: List[Seat] = dilib.SingletonList(seat0, seat1)
+
+    car: Car = dilib.Singleton(
+        Car,
+        seats,
+        engine=engine_config.engine,
+    )
 
 
-def test_basic_demo():
-    config = CarConfig().get(db_address="ava-db")
-    container = dilib.Container(config)
+def test_basic_demo() -> None:
+    config: dilib.Config[CarConfigProtocol] = dilib.get_config(
+        CarConfigProtocol, db_address="ava-db"
+    )
+    container: dilib.Container[CarConfigProtocol] = dilib.get_container(config)
 
-    car = container.car
+    engine: Engine = container.config.engine_config.engine
+
+    car: Car = container.config.car
     assert isinstance(car, Car)
-    assert id(car) == id(container.car)  # Because it's a Singleton
+    assert id(car) == id(container.config.car)  # Because it's a Singleton
     assert isinstance(car.engine, DBEngine)
+    assert id(car.engine) == id(engine)
 
 
 def test_perturb_demo():
-    config = CarConfig().get(db_address="ava-db")
+    config: dilib.Config[CarConfigProtocol] = dilib.get_config(
+        CarConfigProtocol, db_address="ava-db"
+    )
     config.engine_config.engine = MockEngine()
-    container = dilib.Container(config)
+    container = dilib.get_container(config)
 
-    assert isinstance(container.car.engine, MockEngine)
+    assert isinstance(container.config.car.engine, MockEngine)

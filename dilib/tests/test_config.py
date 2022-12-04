@@ -1,132 +1,138 @@
+import dataclasses
 import types
-from typing import Any
+from typing import Any, Dict, List, Tuple
 
 import pytest
 
 import dilib
+from dilib import di_config
 
 
+@dataclasses.dataclass(frozen=True)
 class Value:
-    def __init__(self, value: Any):
-        self.value = value
+    value: Any
 
 
+@dataclasses.dataclass(frozen=True)
 class Values:
-    def __init__(self, x: Any, y: Any, z: Any):
-        self.x = x
-        self.y = y
-        self.z = z
+    x: Any
+    y: Any
+    z: Any
 
 
+@dataclasses.dataclass(frozen=True)
 class SingletonValue(dilib.SingletonMixin):
-    def __init__(self, value: int):
-        self.value = value
+    value: int
 
 
+@dataclasses.dataclass(frozen=True)
 class PrototypeValue(dilib.PrototypeMixin):
-    def __init__(self, value: int):
-        self.value = value
+    value: int
 
 
-# noinspection PyTypeChecker
-class BasicConfig(dilib.Config):
+def calc_offset(x: int, offset: int) -> int:
+    return x + offset
 
-    x = dilib.Object(1)
-    y = dilib.Prototype(lambda x, offset: x + offset, x, offset=1)
 
-    foo = SingletonValue(value=x)  # type: ignore
-    bar = PrototypeValue(value=y)  # type: ignore
+class BasicConfigProtocol(dilib.ConfigProtocol):
+    x: int = dilib.Object(1)
+    y: int = dilib.Prototype(calc_offset, x, offset=1)
+
+    foo: SingletonValue = SingletonValue(value=x)
+    bar: PrototypeValue = PrototypeValue(value=y)
 
 
 def test_config_spec():
     # No inputs
-    assert BasicConfig() == BasicConfig()
-    assert hash(BasicConfig()) == hash(BasicConfig())
+    assert di_config._ConfigSpec(BasicConfigProtocol) == di_config._ConfigSpec(
+        BasicConfigProtocol
+    )
+    assert hash(di_config._ConfigSpec(BasicConfigProtocol)) == hash(
+        di_config._ConfigSpec(BasicConfigProtocol)
+    )
 
     # Basic inputs
-    assert BasicConfig(x=1, y="hi") == BasicConfig(x=1, y="hi")
-    assert BasicConfig(x=1, y="hi") != BasicConfig()
+    assert di_config._ConfigSpec(
+        BasicConfigProtocol, x=1, y="hi"
+    ) == di_config._ConfigSpec(BasicConfigProtocol, x=1, y="hi")
+    assert di_config._ConfigSpec(
+        BasicConfigProtocol, x=1, y="hi"
+    ) != di_config._ConfigSpec(BasicConfigProtocol)
 
-    assert hash(BasicConfig(x=1, y="hi")) == hash(BasicConfig(x=1, y="hi"))
-    assert hash(BasicConfig(x=1, y="hi")) != hash(BasicConfig())
+    assert hash(
+        di_config._ConfigSpec(BasicConfigProtocol, x=1, y="hi")
+    ) == hash(di_config._ConfigSpec(BasicConfigProtocol, x=1, y="hi"))
+    assert hash(
+        di_config._ConfigSpec(BasicConfigProtocol, x=1, y="hi")
+    ) != hash(di_config._ConfigSpec(BasicConfigProtocol))
 
 
-def test_basic():
-    config = BasicConfig().get()
+def test_basic() -> None:
+    config = dilib.get_config(BasicConfigProtocol)
 
     assert config.x.obj == 1
     assert isinstance(config.y.cls, types.LambdaType)
-    assert config.foo.cls is SingletonValue  # noqa
-    assert config.bar.cls is PrototypeValue  # noqa
+    assert config.foo.cls is SingletonValue
+    assert config.bar.cls is PrototypeValue
 
 
-def test_perturb_basic():
-    config0 = BasicConfig().get()
+def test_perturb_basic() -> None:
+    config0 = dilib.get_config(BasicConfigProtocol)
 
     config0.x = 2
+    # This doesn't work well with type checkers, but the user shouldn't
+    # be doing this anyway--this is only for testing.
+    # noinspection PyUnresolvedReferences
     assert config0.x.obj == 2  # type: ignore
 
     # No class-level interactions
-    config1 = BasicConfig().get()
+    config1 = dilib.get_config(BasicConfigProtocol)
 
-    assert config1.x.obj == 1  # noqa
+    assert config1.x.obj == 1
 
 
-def test_perturb_after_freeze():
-    config = BasicConfig().get()
+def test_perturb_after_freeze() -> None:
+    config = dilib.get_config(BasicConfigProtocol)
 
     config.freeze()
     with pytest.raises(dilib.FrozenConfigError):
         config.x = 100
 
 
-def test_add_key_after_load():
-    config = BasicConfig().get()
+def test_add_key_after_load() -> None:
+    config = dilib.get_config(BasicConfigProtocol)
 
     with pytest.raises(dilib.NewKeyConfigError):
         config.new_x = 100
 
 
-# noinspection PyTypeChecker
-class ParentConfig0(dilib.Config):
+class ParentConfigProtocol0(dilib.ConfigProtocol):
+    basic_config: BasicConfigProtocol = dilib.ConfigSpec(BasicConfigProtocol)
 
-    basic_config = BasicConfig()
-
-    baz0 = SingletonValue(basic_config.x)  # type: ignore
+    baz0: SingletonValue = SingletonValue(basic_config.x)
 
 
-# noinspection PyTypeChecker
-class ParentConfig1(dilib.Config):
+class ParentConfigProtocol1(dilib.ConfigProtocol):
+    basic_config: BasicConfigProtocol = dilib.ConfigSpec(BasicConfigProtocol)
 
-    basic_config = BasicConfig()
-
-    baz1 = SingletonValue(basic_config.x)  # type: ignore
-    some_str1 = dilib.Object("abc")
+    baz1: SingletonValue = SingletonValue(basic_config.x)
+    some_str1: str = dilib.Object("abc")
 
 
-# noinspection PyTypeChecker
-class GrandParentConfig(dilib.Config):
+class GrandParentConfigProtocol(dilib.ConfigProtocol):
+    parent_config0: ParentConfigProtocol0 = dilib.ConfigSpec(
+        ParentConfigProtocol0
+    )
+    parent_config1: ParentConfigProtocol1 = dilib.ConfigSpec(
+        ParentConfigProtocol1
+    )
 
-    parent_config0 = ParentConfig0()
-    parent_config1 = ParentConfig1()
-
-    foobar = SingletonValue(parent_config0.basic_config.x)  # type: ignore
-    some_str0 = dilib.Object("hi")
-
-
-# noinspection PyTypeChecker
-class ErrorGrandParentConfig(dilib.Config):
-
-    parent_config0 = ParentConfig0()
-    parent_config1 = ParentConfig1()
-
-    # This is pointing to a non-existent attr, so we will fail when
-    # trying to get foobar via the container.
-    foobar = dilib.Forward(parent_config0.non_existent_field)
+    foobar: SingletonValue = SingletonValue(parent_config0.basic_config.x)
+    some_str0: str = dilib.Object("hi")
 
 
-def test_dir():
-    config = GrandParentConfig().get()
+def test_dir() -> None:
+    config = dilib.get_config(GrandParentConfigProtocol)
 
     assert dir(config) == [
         "foobar",
@@ -137,20 +143,21 @@ def test_dir():
     assert dir(config.parent_config0) == ["basic_config", "baz0"]
 
 
-def test_nested_config():
-    config = GrandParentConfig().get()
+def test_nested_config() -> None:
+    config = dilib.get_config(GrandParentConfigProtocol)
 
     assert id(config.parent_config0.basic_config) == id(
         config.parent_config1.basic_config
     )
 
 
-def test_perturb_nested_config_attrs():
-    config = GrandParentConfig().get()
+# FIXME: Perturbations don't pass type checker
+def test_perturb_nested_config_attrs() -> None:
+    config = dilib.get_config(GrandParentConfigProtocol)
 
     config.some_str0 = "hello"
-    config.parent_config0.basic_config.x = 100
-    config.parent_config1.some_str1 = "def"
+    config.parent_config0.basic_config.x = 100  # type: ignore
+    config.parent_config1.some_str1 = "def"  # type: ignore
 
     # noinspection PyUnresolvedReferences
     assert config.some_str0.obj == "hello"  # type: ignore
@@ -159,8 +166,8 @@ def test_perturb_nested_config_attrs():
     assert config.parent_config1.some_str1.obj == "def"  # type: ignore
 
 
-def test_perturb_nested_config_strs():
-    config = GrandParentConfig().get()
+def test_perturb_nested_config_strs() -> None:
+    config = dilib.get_config(GrandParentConfigProtocol)
 
     config["some_str0"] = "hello"
     config["parent_config0.basic_config.x"] = 100
@@ -171,128 +178,114 @@ def test_perturb_nested_config_strs():
     assert config["parent_config1.some_str1"].obj == "def"
 
 
-def test_perturb_nested_child_config():
-    config = GrandParentConfig().get()
+def test_perturb_nested_child_config() -> None:
+    config = dilib.get_config(GrandParentConfigProtocol)
 
     with pytest.raises(dilib.SetChildConfigError):
-        config.parent_config0 = ParentConfig1()
+        config.parent_config0 = dilib.get_config(ParentConfigProtocol1)
 
 
-class InputConfig0(dilib.Config):
+class InputConfigProtocol0(dilib.ConfigProtocol):
+    name: str = dilib.GlobalInput(str)
+    context: str = dilib.GlobalInput(str, default="default")
+    x: int = dilib.LocalInput(int)
 
-    name = dilib.GlobalInput(str)
-    context = dilib.GlobalInput(str, default="default")
-    x = dilib.LocalInput(int)
 
-
-class InputConfig1(dilib.Config):
-
-    input_config0 = InputConfig0(x=1)
-
-    y = dilib.Prototype(
-        lambda x, offset: x + offset, input_config0.x, offset=1
+class InputConfigProtocol1(dilib.ConfigProtocol):
+    input_config0: InputConfigProtocol0 = dilib.ConfigSpec(
+        InputConfigProtocol0, x=1
     )
 
-
-class BadInputConfig(dilib.Config):
-
-    input_config0 = InputConfig0()  # Note missing inputs
+    y: int = dilib.Prototype(calc_offset, input_config0.x, offset=1)
 
 
-def test_input_config():
+class BadInputConfigProtocol(dilib.ConfigProtocol):
+    # Note missing inputs
+    input_config0 = dilib.ConfigSpec(InputConfigProtocol0)
+
+
+def test_input_config() -> None:
     with pytest.raises(dilib.InputConfigError):
-        InputConfig1().get()
+        dilib.get_config(InputConfigProtocol1)
 
     with pytest.raises(dilib.InputConfigError):
-        InputConfig1().get(name=1)
+        dilib.get_config(InputConfigProtocol1, name=1)
 
     with pytest.raises(dilib.InputConfigError):
-        BadInputConfig().get(name="hi")
+        dilib.get_config(BadInputConfigProtocol, name="hi")
 
-    config = InputConfig1().get(name="hi")
+    config = dilib.get_config(InputConfigProtocol1, name="hi")
 
     assert config.input_config0.name.obj == "hi"
     assert config.input_config0.context.obj == "default"
     assert config.input_config0.x.obj == 1
 
 
-class CollectionConfig(dilib.Config):
+class CollectionConfigProtocol(dilib.ConfigProtocol):
+    x: int = dilib.Object(1)
+    y: int = dilib.Object(2)
 
-    x = dilib.Object(1)
-    y = dilib.Object(2)
-
-    foo_tuple = dilib.SingletonTuple(x, y)
-    foo_list = dilib.SingletonList(x, y)
-    foo_dict_kwargs = dilib.SingletonDict(x=x, y=y)
-    foo_dict_values0 = dilib.SingletonDict({1: x, 2: y})
-    foo_dict_values1 = dilib.SingletonDict({"values": x})
+    foo_tuple: Tuple[int, int] = dilib.SingletonTuple(x, y)
+    foo_list: List[int] = dilib.SingletonList(x, y)
+    foo_dict: Dict[str, int] = dilib.SingletonDict(x=x, y=y)
 
 
-class AnonymousConfig(dilib.Config):
-
-    x = dilib.Singleton(Value, 1)
-    y = dilib.Singleton(Value, dilib.Singleton(Value, x))
-    z = dilib.Singleton(Value, dilib.Prototype(Value, x))
-
-
-class WrapperConfig(dilib.Config):
-
-    _value = dilib.Singleton(Value, 1)
-    value = dilib.Singleton(Value, _value)
+class AnonymousConfigProtocol(dilib.ConfigProtocol):
+    x: Value = dilib.Singleton(Value, 1)
+    y: Value = dilib.Singleton(Value, dilib.Singleton(Value, x))
+    z: Value = dilib.Singleton(Value, dilib.Prototype(Value, x))
 
 
-class ForwardConfig(dilib.Config):
-
-    other_config = GrandParentConfig()
-
-    x = dilib.Forward(other_config.parent_config0.basic_config.x)
-    x_value = dilib.Singleton(Value, value=x)
-
-    foo = dilib.Forward(other_config.parent_config0.basic_config.foo)
-    foo_value = dilib.Singleton(Value, value=foo)
+class WrapperConfigProtocol(dilib.ConfigProtocol):
+    _value: Value = dilib.Singleton(Value, 1)
+    value: Value = dilib.Singleton(Value, _value)
 
 
-class PartialKwargsConfig(dilib.Config):
-
-    x = dilib.Object(1)
-    y = dilib.Object(2)
-
-    partial_kwargs = dilib.SingletonDict(x=x, y=y)
-
-    values = dilib.Singleton(Values, z=x, __lazy_kwargs=partial_kwargs)
-
-
-class PartialKwargsOtherConfig(dilib.Config):
-
-    partial_kwargs_config = PartialKwargsConfig()
-
-    z = dilib.Object(3)
-    values = dilib.Singleton(
-        Values, z=z, __lazy_kwargs=partial_kwargs_config.partial_kwargs
+class ForwardConfigProtocol(dilib.ConfigProtocol):
+    other_config: GrandParentConfigProtocol = dilib.ConfigSpec(
+        GrandParentConfigProtocol
     )
 
+    x: int = dilib.Forward(other_config.parent_config0.basic_config.x)
+    x_value: Value = dilib.Singleton(Value, value=x)
 
-def test_extra_global_inputs():
+    foo: SingletonValue = dilib.Forward(
+        other_config.parent_config0.basic_config.foo
+    )
+    foo_value: Value = dilib.Singleton(Value, value=foo)
+
+
+class PartialKwargsConfigProtocol(dilib.ConfigProtocol):
+    x: int = dilib.Object(1)
+    y: int = dilib.Object(2)
+
+    partial_kwargs: Dict[str, int] = dict(x=x, y=y)
+
+    values: Values = dilib.Singleton(Values, z=x, **partial_kwargs)
+
+
+def test_extra_global_inputs() -> None:
     with pytest.raises(dilib.InputConfigError):
         try:
-            InputConfig1().get(name="testing", foobar=123)
+            dilib.get_config(InputConfigProtocol1, name="testing", foobar=123)
         except dilib.InputConfigError as exc:
             assert "extra" in str(exc) and "'foobar'" in str(exc)
             raise
 
 
-class InputConfigWithCollision(dilib.Config):
-
-    input_config0 = InputConfig0(x=1)
+class InputConfigProtocolWithCollision(dilib.ConfigProtocol):
+    input_config0: InputConfigProtocol0 = dilib.ConfigSpec(
+        InputConfigProtocol0, x=1
+    )
 
     # "name" collides with input_config0.name
-    name = dilib.GlobalInput(str)
+    name: str = dilib.GlobalInput(str)
 
 
-def test_global_input_collisions():
+def test_global_input_collisions() -> None:
     with pytest.raises(dilib.InputConfigError):
         try:
-            InputConfigWithCollision().get(name="testing")
+            dilib.get_config(InputConfigProtocolWithCollision, name="testing")
         except dilib.InputConfigError as exc:
             assert "collision" in str(exc) and "'name'" in str(exc)
             raise

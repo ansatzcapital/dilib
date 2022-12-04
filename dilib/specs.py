@@ -1,19 +1,29 @@
 from __future__ import annotations
 
-from typing import Any, Callable, Dict, List, Optional, Type, Union
+from typing import Any, Callable, Generic, List, Optional, Type, TypeVar, cast
 
 MISSING = object()
-MISSING_DICT: Dict = {}
+
 SpecID = int
+T = TypeVar("T")
+T_co = TypeVar("T_co", covariant=True)
 
 
 def instantiate(cls: type, *args, **kwargs) -> Any:
     """Instantiate obj from Spec parts."""
-    obj: Any = object.__new__(cls)
+    if cls in (list, tuple):
+        return cls(args)
+    elif cls is dict:
+        return cls(kwargs)
+    else:
+        # noinspection PyTypeChecker
+        obj = object.__new__(cls)
+
     try:
         obj.__init__(*args, **kwargs)
     except TypeError as exc:
         raise TypeError(f"{cls}: {str(exc)}")
+
     return obj
 
 
@@ -28,7 +38,7 @@ class AttrFuture:
         return AttrFuture(self.parent_spec_id, self.attrs + [attr])
 
 
-class Spec:
+class Spec(Generic[T]):
     """Represents delayed obj to be instantiated later."""
 
     NEXT_SPEC_ID = 0
@@ -39,10 +49,6 @@ class Spec:
     def __getattr__(self, attr: str) -> AttrFuture:
         return AttrFuture(self.spec_id, [attr])
 
-    # For mypy
-    def __call__(self, *args, **kwargs):
-        return None
-
     @staticmethod
     def _get_next_spec_id() -> SpecID:
         result = Spec.NEXT_SPEC_ID
@@ -50,39 +56,58 @@ class Spec:
         return result
 
 
-class Object(Spec):
+class _Object(Spec[T]):
     """Represents fully-instantiated obj."""
 
-    def __init__(self, obj: Any):
+    def __init__(self, obj: T):
         super().__init__()
         self.obj = obj
 
 
-class Input(Spec):
+# noinspection PyPep8Naming
+def Object(obj: T) -> T:
+    # Cast because the return type will act like a U
+    return cast(T, _Object(obj))
+
+
+class _Input(Spec[T]):
     """Represents global input that can be set while getting Config."""
 
-    def __init__(self, type_: Optional[Type] = None, default: Any = MISSING):
+    def __init__(
+        self, type_: Optional[Type[T]] = None, default: Any = MISSING
+    ):
         super().__init__()
         self.type_ = type_
         self.default = default
 
 
-class GlobalInput(Input):
+class _GlobalInput(_Input[T]):
     pass
 
 
-class LocalInput(Input):
+# noinspection PyPep8Naming
+def GlobalInput(type_: Optional[Type[T]] = None, default: Any = MISSING) -> T:
+    # Cast because the return type will act like a T
+    return cast(T, _GlobalInput(type_=type_, default=default))
+
+
+class _LocalInput(_Input[T]):
     pass
 
 
-class Prototype(Spec):
+# noinspection PyPep8Naming
+def LocalInput(type_: Optional[Type[T]] = None, default: Any = MISSING) -> T:
+    # Cast because the return type will act like a T
+    return cast(T, _LocalInput(type_=type_, default=default))
+
+
+class _Prototype(Spec[T]):
     """Represents obj to be instantiated at every Container get call."""
 
-    def __init__(self, cls: Union[Type, Callable], *args, **kwargs):
+    def __init__(self, cls: Callable[..., T], *args, **kwargs):
         super().__init__()
         self.cls = cls
         self.args = args
-        self.lazy_kwargs = kwargs.pop("__lazy_kwargs", None)
         self.kwargs = kwargs
 
     def instantiate(self) -> Any:
@@ -91,82 +116,59 @@ class Prototype(Spec):
             return instantiate(self.cls, *self.args, **self.kwargs)
         else:
             # Non-type callable (e.g., function, functor)
-            return self.cls(*self.args, **self.kwargs)
+            return self.cls(*self.args, **self.kwargs)  # noqa
 
-    def copy_with(self, *args, **kwargs) -> Prototype:
+    def copy_with(self, *args, **kwargs) -> _Prototype:
         return self.__class__(self.cls, *args, **kwargs)
 
 
-class PrototypeIdentity(Prototype):
-    """Represents forwarding to another spec."""
-
-    def __init__(self, obj: Any):
-        super().__init__(lambda obj_: obj_, obj)
-
-    def copy_with(self, *args, **kwargs) -> PrototypeIdentity:
-        return self.__class__(*args, **kwargs)
+# noinspection PyPep8Naming
+def Prototype(cls: Callable[..., T], *args, **kwargs) -> T:
+    # Cast because the return type will act like a T
+    return cast(T, _Prototype(cls, *args, **kwargs))
 
 
-Forward = PrototypeIdentity
+def identity(obj: T) -> T:
+    return obj
 
 
-class Singleton(Prototype):
+# noinspection PyPep8Naming
+def Forward(obj: T) -> T:
+    # Cast because the return type will act like a T
+    return cast(T, _Prototype(identity, obj))
+
+
+class _Singleton(_Prototype[T]):
     """Represents obj to be instantiated once per key per Container."""
 
     pass
 
 
-class SingletonCollection(Singleton):
-    """Represents collection to be instantiated once per key per Container."""
-
-    def copy_with(self, *args, **kwargs) -> SingletonCollection:
-        return self.__class__(*args, **kwargs)
-
-
-class SingletonTuple(SingletonCollection):
-    """Represents tuple to be instantiated once per key per Container."""
-
-    def __init__(self, *args):
-        super().__init__(lambda *args_: args_, *args)
+# noinspection PyPep8Naming
+def Singleton(cls: Callable[..., T], *args, **kwargs) -> T:
+    # Cast because the return type will act like a T
+    return cast(T, _Singleton(cls, *args, **kwargs))
 
 
-class SingletonList(SingletonCollection):
-    """Represents list to be instantiated once per key per Container."""
+# noinspection PyPep8Naming
+def SingletonTuple(*args) -> T:
+    # Cast because the return type will act like a T
+    # noinspection PyTypeChecker
+    return cast(T, _Singleton(tuple, *args))
 
-    def __init__(self, *args):
-        super().__init__(lambda *args_: list(args_), *args)
+
+# noinspection PyPep8Naming
+def SingletonList(*args) -> T:
+    # Cast because the return type will act like a T
+    # noinspection PyTypeChecker
+    return cast(T, _Singleton(list, *args))
 
 
-class SingletonDict(SingletonCollection):
-    """Represents dict to be instantiated once per key per Container.
-
-    Can be used either with kwargs:
-
-        >>> values = dilib.SingletonDict(x=x, y=y)
-
-    Or with a dict (useful when keys are not strs):
-
-        >>> values = dilib.SingletonDict({1: x, 2: y})
-    """
-
-    def __init__(self, values: Dict = MISSING_DICT, **kwargs):
-        if values is MISSING_DICT:
-            super().__init__(lambda **kwargs_: kwargs_, **kwargs)
-            self._kwargs_style = True
-        else:
-            if kwargs:
-                raise ValueError("Cannot set both values and kwargs")
-
-            super().__init__(
-                lambda values_: values_, __lazy_kwargs=dict(values_=values)
-            )
-            self._kwargs_style = False
-
-    def copy_with(self, *args, **kwargs) -> SingletonCollection:
-        if self._kwargs_style:
-            return super().copy_with(*args, **kwargs)
-        else:
-            return Singleton(lambda values_: values_["values_"], kwargs)  # type: ignore  # noqa
+# noinspection PyPep8Naming
+def SingletonDict(**kwargs) -> T:
+    # Cast because the return type will act like a T
+    # noinspection PyTypeChecker
+    return cast(T, _Singleton(dict, **kwargs))
 
 
 class PrototypeMixin:

@@ -1,186 +1,162 @@
+from typing import Type
+
 import pytest
 
 import dilib
 from dilib.tests import test_config
 
 
-def test_basic():
-    config = test_config.BasicConfig().get()
-    container = dilib.Container(config)
+def test_basic() -> None:
+    config = dilib.get_config(test_config.BasicConfigProtocol)
+    container = dilib.get_container(config)
 
-    assert container.x == 1
-    assert container.y == 2
-    assert isinstance(container.foo, test_config.SingletonValue)
-    assert container.foo.value == 1
-    assert isinstance(container.bar, test_config.PrototypeValue)
-    assert container.bar.value == 2
+    assert container.config.x == 1
+    assert container.config.y == 2
+    assert isinstance(container.config.foo, test_config.SingletonValue)
+    assert container.config.foo.value == 1
+    assert isinstance(container.config.bar, test_config.PrototypeValue)
+    assert container.config.bar.value == 2
 
-    assert container.foo is container.foo  # foo is a Singleton
-    assert container.bar is not container.bar  # foo is a Prototype
+    assert container.config.foo is container.config.foo  # foo is a Singleton
+    assert (
+        container.config.bar is not container.config.bar
+    )  # foo is a Prototype
 
 
-def test_perturb_basic():
-    config = test_config.BasicConfig().get()
+def test_perturb_basic() -> None:
+    config = dilib.get_config(test_config.BasicConfigProtocol)
     config.x = 2
 
-    container = dilib.Container(config)
-    assert container.y == 3
-    assert container.foo.value == 2
-    assert container.bar.value == 3
+    container = dilib.get_container(config)
+    assert container.config.y == 3
+    assert container.config.foo.value == 2
+    assert container.config.bar.value == 3
 
 
-def test_get_nested():
-    config = test_config.GrandParentConfig().get()
-    container = dilib.Container(config)
+def test_get_nested() -> None:
+    config = dilib.get_config(test_config.GrandParentConfigProtocol)
+    container = dilib.get_container(config)
 
-    assert container.parent_config0.basic_config.x == 1
+    assert container.config.parent_config0.basic_config.x == 1
     assert container["parent_config0.basic_config.x"] == 1
 
 
-def test_dir():
-    config = test_config.GrandParentConfig().get()
-    container = dilib.Container(config)
+def test_dir() -> None:
+    config = dilib.get_config(test_config.GrandParentConfigProtocol)
+    container = dilib.get_container(config)
 
-    assert dir(container) == [
+    assert dir(container.config) == [
         "foobar",
         "parent_config0",
         "parent_config1",
         "some_str0",
     ]
-    assert dir(container.parent_config0) == ["basic_config", "baz0"]
+    assert dir(container.config.parent_config0) == ["basic_config", "baz0"]
 
 
-def test_perturb_nested():
-    config = test_config.GrandParentConfig().get()
-    config.parent_config0.basic_config.x = 10
+def test_perturb_nested() -> None:
+    config = dilib.get_config(test_config.GrandParentConfigProtocol)
+
+    # FIXME: Perturbations don't pass type checker
+    config.parent_config0.basic_config.x = 10  # type: ignore
 
     container = dilib.Container(config)
 
-    assert container.parent_config0.basic_config.x == 10
-    assert container.parent_config0.basic_config.foo.value == 10
-    assert container.parent_config0.basic_config.bar.value == 11
+    assert container.config.parent_config0.basic_config.x == 10
+    assert container.config.parent_config0.basic_config.foo.value == 10
+    assert container.config.parent_config0.basic_config.bar.value == 11
     assert (
-        container.parent_config0.basic_config.foo
-        is container.parent_config1.basic_config.foo
+        container.config.parent_config0.basic_config.foo
+        is container.config.parent_config1.basic_config.foo
     )
-    assert container.parent_config0.baz0.value == 10
-    assert container.parent_config1.baz1.value == 10
-    assert container.foobar.value == 10
+    assert container.config.parent_config0.baz0.value == 10
+    assert container.config.parent_config1.baz1.value == 10
+    assert container.config.foobar.value == 10
 
 
-def test_nested_keyerror():
-    config = test_config.ErrorGrandParentConfig().get()
-    container = dilib.Container(config)
+def test_input_config() -> None:
+    config = dilib.get_config(test_config.InputConfigProtocol1, name="hi")
 
-    with pytest.raises(KeyError):
-        try:
-            container.foobar
-        except KeyError as exc:
-            assert str(exc) == (
-                "\"<class 'dilib.tests.test_config.ParentConfig0'>: "
-                "'non_existent_field'\""
-            )
-            raise
+    # FIXME: Perturbations don't pass type checker
+    config.input_config0.x = 100  # type: ignore
 
-
-def test_input_config():
-    config = test_config.InputConfig1().get(name="hi")
-    config.input_config0.x = 100
-
-    container = dilib.Container(config)
-    assert container.input_config0.name == "hi"
-    assert container.input_config0.context == "default"
-    assert container.input_config0.x == 100
-    assert container.y == 101
+    container = dilib.get_container(config)
+    assert container.config.input_config0.name == "hi"
+    assert container.config.input_config0.context == "default"
+    assert container.config.input_config0.x == 100
+    assert container.config.y == 101
 
 
 def test_collection_config():
-    config = test_config.CollectionConfig().get()
-    container = dilib.Container(config)
+    config = dilib.get_config(test_config.CollectionConfigProtocol)
+    container = dilib.get_container(config)
 
-    assert container.x == 1
-    assert container.y == 2
-    assert container.foo_tuple == (1, 2)
-    assert container.foo_list == [1, 2]
-    assert container.foo_dict_kwargs == {"x": 1, "y": 2}
-    assert container.foo_dict_values0 == {1: 1, 2: 2}
-    assert container.foo_dict_values1 == {"values": 1}
+    assert container.config.x == 1
+    assert container.config.y == 2
+    assert container.config.foo_tuple == (1, 2)
+    assert container.config.foo_list == [1, 2]
+    assert container.config.foo_dict == {"x": 1, "y": 2}
 
-    assert container.foo_tuple is container.foo_tuple
+    assert container.config.foo_tuple is container.config.foo_tuple
 
 
-def test_anonymous():
-    config = test_config.AnonymousConfig().get()
-    container = dilib.Container(config)
+def test_anonymous() -> None:
+    config = dilib.get_config(test_config.AnonymousConfigProtocol)
+    container = dilib.get_container(config)
 
-    assert container.y.value.value is container.x
-    assert container.z.value.value is container.x
-
-
-def test_underscore():
-    config = test_config.WrapperConfig().get()
-    container = dilib.Container(config)
-
-    assert container.value.value is container._value
+    assert container.config.y.value.value is container.config.x
+    assert container.config.z.value.value is container.config.x
 
 
-def test_forward():
-    config = test_config.ForwardConfig().get()
-    container = dilib.Container(config)
+def test_underscore() -> None:
+    config = dilib.get_config(test_config.WrapperConfigProtocol)
+    container = dilib.get_container(config)
+
+    assert container.config.value.value is container.config._value
+
+
+def test_forward() -> None:
+    config = dilib.get_config(test_config.ForwardConfigProtocol)
+    container = dilib.get_container(config)
 
     assert (
-        container.foo is container.other_config.parent_config0.basic_config.foo
+        container.config.foo
+        is container.config.other_config.parent_config0.basic_config.foo
     )
     assert (
-        container.foo_value.value
-        is container.other_config.parent_config0.basic_config.foo
+        container.config.foo_value.value
+        is container.config.other_config.parent_config0.basic_config.foo
     )
 
 
-def test_perturb_forward():
-    config = test_config.ForwardConfig().get()
+def test_perturb_forward() -> None:
+    config = dilib.get_config(test_config.ForwardConfigProtocol)
 
     config.x = 1000
 
-    container = dilib.Container(config)
+    container = dilib.get_container(config)
 
     # Objs that depend on original x remain unperturbed, but objs
     # that depend on the forward alias are perturbed.
-    assert container.other_config.parent_config0.basic_config.x == 1
-    assert container.other_config.foobar.value == 1
-    assert container.x == 1000
-    assert container.x_value.value == 1000
+    assert container.config.other_config.parent_config0.basic_config.x == 1
+    assert container.config.other_config.foobar.value == 1
+    assert container.config.x == 1000
+    assert container.config.x_value.value == 1000
 
 
-def test_perturb_partial_kwargs():
-    config = test_config.PartialKwargsConfig().get()
+def test_perturb_partial_kwargs() -> None:
+    config = dilib.get_config(test_config.PartialKwargsConfigProtocol)
 
     config.x = 10
     config.y = 20
 
-    container = dilib.Container(config)
+    container = dilib.get_container(config)
 
-    assert container.x == 10
-    assert container.y == 20
-    assert container.values.x == 10
-    assert container.values.y == 20
-    assert container.values.z == 10
-
-
-def test_perturb_partial_kwargs_other():
-    config = test_config.PartialKwargsOtherConfig().get()
-
-    config.partial_kwargs_config.x = 10
-
-    container = dilib.Container(config)
-
-    assert container.partial_kwargs_config.values.x == 10
-    assert container.partial_kwargs_config.values.y == 2
-    assert container.partial_kwargs_config.values.z == 10
-
-    assert container.values.x == 10
-    assert container.values.y == 2
-    assert container.values.z == 3
+    assert container.config.x == 10
+    assert container.config.y == 20
+    assert container.config.values.x == 10
+    assert container.config.values.y == 20
+    assert container.config.values.z == 10
 
 
 class ObjWithAttr:
@@ -189,30 +165,114 @@ class ObjWithAttr:
         return 1
 
 
-class ObjAttrConfig(dilib.Config):
-    test_obj = dilib.Singleton(ObjWithAttr)
-    test_obj_attr = dilib.Forward(test_obj.test_attr)
+class ObjAttrConfigProtocol(dilib.ConfigProtocol):
+    test_obj: ObjWithAttr = dilib.Singleton(ObjWithAttr)
+    test_obj_attr: int = dilib.Forward(test_obj.test_attr)
 
 
-class NestedConfigObjAttrConfig(dilib.Config):
-    cfg = ObjAttrConfig()
+class NestedConfigObjAttrConfigProtocol(dilib.ConfigProtocol):
+    cfg = dilib.ConfigSpec(ObjAttrConfigProtocol)
 
     test_obj = dilib.Forward(cfg.test_obj)
     test_obj_attr = dilib.Forward(cfg.test_obj_attr)
 
 
-def test_obj_attr():
-    config = ObjAttrConfig().get()
-    container = dilib.Container(config)
+def test_obj_attr() -> None:
+    config = dilib.get_config(ObjAttrConfigProtocol)
+    container = dilib.get_container(config)
 
-    assert container.test_obj.test_attr == 1
-    assert container.test_obj_attr == 1
+    assert container.config.test_obj.test_attr == 1
+    assert container.config.test_obj_attr == 1
 
 
-def test_nested_config_obj_attr():
-    config = NestedConfigObjAttrConfig().get()
-    container = dilib.Container(config)
+def test_nested_config_obj_attr() -> None:
+    config = dilib.get_config(NestedConfigObjAttrConfigProtocol)
+    container = dilib.get_container(config)
 
-    assert container.test_obj.test_attr == 1
-    assert container.test_obj_attr == 1
-    assert container.test_obj is container.cfg.test_obj
+    assert container.config.test_obj.test_attr == 1
+    assert container.config.test_obj_attr == 1
+    assert container.config.test_obj is container.config.cfg.test_obj
+
+
+class BaseCoreConfigProtocol(dilib.ConfigProtocol):
+    x: int
+
+
+class CoreConfigProtocol0(BaseCoreConfigProtocol):
+    x: int = dilib.Object(1)
+
+
+class CoreConfigProtocol1(BaseCoreConfigProtocol):
+    x: int = dilib.Object(2)
+
+
+class GlobalConfigInputConfigProtocol(dilib.ConfigProtocol):
+    child_cfg: BaseCoreConfigProtocol = dilib.GlobalInput(
+        BaseCoreConfigProtocol
+    )
+
+    y: int = dilib.Forward(child_cfg.x)
+
+
+@pytest.mark.parametrize(
+    "child_config_cls,perturb,expected_y",
+    [
+        (CoreConfigProtocol0, False, 1),
+        (CoreConfigProtocol1, False, 2),
+        (CoreConfigProtocol0, True, 3),
+        (CoreConfigProtocol1, True, 3),
+    ],
+)
+def test_global_config_input(
+    child_config_cls: Type[BaseCoreConfigProtocol],
+    perturb: bool,
+    expected_y: int,
+) -> None:
+    config = dilib.get_config(
+        GlobalConfigInputConfigProtocol, child_cfg=child_config_cls
+    )
+
+    if perturb:
+        # FIXME: Perturbations don't pass type checker
+        config.child_cfg.x = 3  # type: ignore
+
+    container = dilib.get_container(config)
+
+    assert container.config.y == expected_y
+
+
+class LocalConfigInputConfigProtocol(dilib.ConfigProtocol):
+    child_cfg: BaseCoreConfigProtocol = dilib.LocalInput(
+        BaseCoreConfigProtocol
+    )
+
+    y: int = dilib.Forward(child_cfg.x)
+
+
+@pytest.mark.parametrize(
+    "child_config_cls,perturb,expected_y",
+    [
+        (CoreConfigProtocol0, False, 1),
+        (CoreConfigProtocol1, False, 2),
+        (CoreConfigProtocol0, True, 3),
+        (CoreConfigProtocol1, True, 3),
+    ],
+)
+def test_local_config_input(
+    child_config_cls: Type[BaseCoreConfigProtocol],
+    perturb: bool,
+    expected_y: int,
+) -> None:
+    config = dilib.get_config(
+        dilib.ConfigSpec(
+            LocalConfigInputConfigProtocol, child_cfg=child_config_cls
+        )
+    )
+
+    if perturb:
+        # FIXME: Perturbations don't pass type checker
+        config.child_cfg.x = 3  # type: ignore
+
+    container = dilib.get_container(config)
+
+    assert container.config.y == expected_y

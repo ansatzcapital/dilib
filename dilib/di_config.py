@@ -1,12 +1,26 @@
 from __future__ import annotations
 
 import datetime
-from typing import Any, Dict, Iterable, Optional, Set, Type, Union
+from typing import (
+    Any,
+    Dict,
+    Generic,
+    Iterable,
+    Optional,
+    Set,
+    Type,
+    TypeVar,
+    Union,
+    cast,
+)
 
-from dilib import errors, specs, utils
+from dilib import errors
+from dilib import specs
+from dilib import utils
 
 PRIMITIVE_TYPES = (
     type(None),
+    type,
     bool,
     int,
     float,
@@ -29,44 +43,46 @@ def check_type(
     else:
         types = (type_,)
 
-    if not isinstance(value, types):
-        raise errors.InputConfigError(
-            f"{tag} input mismatch types: {type(value)} is not {type_}"
-        )
+    if isinstance(value, type):
+        if not issubclass(value, types):
+            raise errors.InputConfigError(
+                f"{tag} input mismatch types: {value} is not {type_}"
+            )
+    else:
+        if not isinstance(value, types):
+            raise errors.InputConfigError(
+                f"{tag} input mismatch types: {type(value)} is not {type_}"
+            )
 
 
-class ConfigSpec(specs.Spec):
+class ConfigProtocol:
+    """Config definition and API."""
+
+    pass
+
+
+T = TypeVar("T", bound=ConfigProtocol)
+
+
+class _ConfigSpec(specs.Spec[T]):
     """Spec for Configs."""
 
-    def __init__(self, cls: Type[Config], **kwargs):
+    def __init__(self, config_protocol_cls: Type[T], **kwargs):
         super().__init__()
-        self.cls = cls
+        self.config_protocol_cls = config_protocol_cls
         self.kwargs = kwargs
 
     def _instantiate(self, config_locator: ConfigLocator) -> Config:
-        """Instantiate, useful when using outside DI framework."""
-        return specs.instantiate(self.cls, config_locator, **self.kwargs)
-
-    def get(self, **global_inputs) -> Config:
-        """Get instance of this Config."""
-        config_locator = ConfigLocator(**global_inputs)
-        config = config_locator.get(self)
-
-        # noinspection PyProtectedMember
-        global_input_keys = config._get_all_global_input_keys()
-        extra_global_input_keys = set(global_inputs.keys()) - global_input_keys
-        if extra_global_input_keys:
-            raise errors.InputConfigError(
-                f"Provided extra global inputs "
-                f"not specified in configs: {extra_global_input_keys}"
-            )
-
-        return config
+        """Instantiate."""
+        config_protocol = self.config_protocol_cls()
+        return specs.instantiate(
+            Config, config_protocol, config_locator, **self.kwargs
+        )
 
     def __eq__(self, other: Any) -> bool:
         return (
-            type(other) is ConfigSpec
-            and self.cls is other.cls
+            type(other) is _ConfigSpec
+            and self.config_protocol_cls is other.config_protocol_cls
             and self.kwargs == other.kwargs
         )
 
@@ -79,10 +95,17 @@ class ConfigSpec(specs.Spec):
         )
 
 
-class Config:
+# noinspection PyPep8Naming
+def ConfigSpec(config_protocol_cls: Type[T], **kwargs) -> T:
+    # Cast because the return type will act like a T
+    return cast(T, _ConfigSpec(config_protocol_cls, **kwargs))
+
+
+class Config(Generic[T]):
     """dataclass-style description of params and obj graph."""
 
     _INTERNAL_FIELDS = (
+        "_config_protocol",
         "_config_locator",
         "_keys",
         "_specs",
@@ -96,19 +119,13 @@ class Config:
         "freeze",
     )
 
-    def __new__(cls: Type, **kwargs):
-        # noinspection PyTypeChecker
-        return ConfigSpec(cls, **kwargs)
-
     def __init__(
-        self, config_locator: Optional[ConfigLocator] = None, **local_inputs
+        self,
+        config_protocol: ConfigProtocol,
+        config_locator: ConfigLocator,
+        **local_inputs,
     ):
-        if config_locator is None:
-            raise ValueError(
-                "config_locator is only defaulted to "
-                "None to aid PyCharm inspections. "
-                "Use config's cls.get() instead."
-            )
+        self._config_protocol = config_protocol
         self._config_locator = config_locator
 
         for value in local_inputs.values():
@@ -126,10 +143,6 @@ class Config:
         self._frozen = False
 
         self._load(**local_inputs)
-
-    # For mypy
-    def __call__(self, *args, **kwargs):
-        return None
 
     def _get_all_global_input_keys(
         self, all_global_input_keys: Optional[Dict[str, specs.SpecID]] = None
@@ -155,9 +168,10 @@ class Config:
 
         return set(all_global_input_keys.keys())
 
+    # noinspection PyProtectedMember
     def _process_input(
-        self, key: str, spec: specs.Input, inputs: Dict[str, Any], tag: str
-    ) -> specs.Object:
+        self, key: str, spec: specs._Input, inputs: Dict[str, Any], tag: str
+    ) -> specs.Spec:
         """Convert Input spec to Object spec."""
         try:
             value = inputs[key]
@@ -169,13 +183,20 @@ class Config:
 
         check_type(value, spec.type_, tag=tag)
 
-        new_spec = specs.Object(value)
-        new_spec.spec_id = spec.spec_id
+        new_spec: specs.Spec
+        if spec.type_ and issubclass(spec.type_, ConfigProtocol):
+            new_spec = _ConfigSpec(value)
+            new_spec.spec_id = spec.spec_id
+        else:
+            new_spec = specs._Object(value)
+            new_spec.spec_id = spec.spec_id
+
         return new_spec
 
     def _load(self, **local_inputs):
         """Transfer class variables to instance."""
-        for key in self.__class__.__dict__:
+        defining_cls = self._config_protocol.__class__
+        for key in defining_cls.__dict__:
             if (
                 key.startswith("__")
                 or key == "_INTERNAL_FIELDS"
@@ -183,7 +204,7 @@ class Config:
             ):
                 continue
 
-            spec = getattr(self.__class__, key)
+            spec = getattr(defining_cls, key)
 
             # Skip partial kwargs (no registration needed)
             if isinstance(spec, dict):
@@ -198,17 +219,18 @@ class Config:
             self._keys[spec.spec_id] = key
 
             # Handle inputs
-            if isinstance(spec, specs.GlobalInput):
+            # noinspection PyProtectedMember
+            if isinstance(spec, specs._GlobalInput):
                 self._global_inputs[key] = spec.spec_id
 
                 spec = self._process_input(
                     key, spec, self._config_locator.global_inputs, "Global"
                 )
-            elif isinstance(spec, specs.LocalInput):
+            elif isinstance(spec, specs._LocalInput):
                 spec = self._process_input(key, spec, local_inputs, "Local")
 
             # Handle child configs
-            if isinstance(spec, ConfigSpec):
+            if isinstance(spec, _ConfigSpec):
                 child_config = self._config_locator.get(spec)
                 self._child_configs[key] = child_config
             else:
@@ -229,14 +251,9 @@ class Config:
             or key in self._INTERNAL_FIELDS
         ):
             return super().__getattribute__(key)
-
-        try:
-            if key in self._child_configs:
-                return self._child_configs[key]
-            else:
-                return self._specs[key]
-        except KeyError:
-            raise KeyError(f"{self.__class__}: {key!r}")
+        elif key in self._child_configs:
+            return self._child_configs[key]
+        return self._specs[key]
 
     def __getitem__(self, key: str) -> Any:
         return utils.nested_getattr(self, key)
@@ -268,7 +285,8 @@ class Config:
         old_spec = self._specs[key]
 
         if not isinstance(value, specs.Spec):
-            value = specs.Object(value)
+            # noinspection PyProtectedMember
+            value = specs._Object(value)
 
         self._specs[key] = value
         value.spec_id = old_spec.spec_id
@@ -288,9 +306,9 @@ class ConfigLocator:
     def __init__(self, **global_inputs):
         self.global_inputs: Dict[str, Any] = global_inputs
 
-        self._config_cache: Dict[ConfigSpec, Config] = {}
+        self._config_cache: Dict[_ConfigSpec, Config] = {}
 
-    def get(self, config_spec: ConfigSpec) -> Config:
+    def get(self, config_spec: _ConfigSpec[T]) -> Config[T]:
         """Get Config instance by type."""
         try:
             return self._config_cache[config_spec]
@@ -301,3 +319,26 @@ class ConfigLocator:
         config = config_spec._instantiate(self)
         self._config_cache[config_spec] = config
         return config
+
+
+def get_config(
+    config_protocol_cls: Union[Type[T], T], **global_inputs
+) -> Config[T]:
+    if isinstance(config_protocol_cls, _ConfigSpec):
+        config_spec = config_protocol_cls
+    else:
+        config_spec = _ConfigSpec(cast(Type[T], config_protocol_cls))
+
+    config_locator = ConfigLocator(**global_inputs)
+    config = config_locator.get(config_spec)
+
+    # noinspection PyProtectedMember
+    global_input_keys = config._get_all_global_input_keys()
+    extra_global_input_keys = set(global_inputs.keys()) - global_input_keys
+    if extra_global_input_keys:
+        raise errors.InputConfigError(
+            f"Provided extra global inputs "
+            f"not specified in configs: {extra_global_input_keys}"
+        )
+
+    return config

@@ -1,14 +1,18 @@
 from __future__ import annotations
 
-from typing import Any, Dict, Iterable, Optional, Union, cast
+from typing import Any, Dict, Generic, Iterable, Optional, TypeVar, cast
 
-from dilib import di_config, specs, utils
+from dilib import di_config
+from dilib import specs
+from dilib import utils
+
+T = TypeVar("T", bound=di_config.ConfigProtocol)
 
 
-class ConfigProxy:
+class ConfigProxy(Generic[T]):
     """Read-only helper to marshal config values."""
 
-    def __init__(self, container: Container, config: di_config.Config):
+    def __init__(self, container: Container[T], config: di_config.Config[T]):
         self.container = container
         self.config = config
 
@@ -23,52 +27,51 @@ class ConfigProxy:
         return dir(self.config)
 
 
-class Container:
+# noinspection PyProtectedMember
+class Container(Generic[T]):
     """Getter of (cached) instances."""
 
-    def __init__(self, config: di_config.Config):
-        if isinstance(config, di_config.ConfigSpec):
+    def __init__(self, config: di_config.Config[T]):
+        if isinstance(config, di_config._ConfigSpec):
             raise ValueError(
-                "Expected Config type, got ConfigSpec. "
-                "Please call .get() on the config."
+                "Expected Config type, got _ConfigSpec. "
+                "Please call dilib.get_config()."
             )
 
         self._config = config
         self._config.freeze()
 
-        self._instance_cache: Dict[Union[str, int], Any] = {}
+        self._instance_cache: Dict[str, Any] = {}
+
+    @property
+    def config(self) -> T:
+        # Cast because ConfigProxy[T] will adhere to T config protocol
+        return cast(T, ConfigProxy(self, self._config))
 
     def _process_arg(self, config: di_config.Config, arg: Any) -> Any:
         if isinstance(arg, specs.Spec):
-            # noinspection PyProtectedMember
             if arg.spec_id in config._keys:
-                # noinspection PyProtectedMember
                 config_key = config._keys[arg.spec_id]
                 result = self._get(config, config_key)
-            elif isinstance(arg, specs.Prototype):
+            elif isinstance(arg, specs._Prototype):
                 # Anonymous prototype or singleton
                 result = self._materialize_spec(config, arg).instantiate()
             else:
                 raise ValueError(f"Unrecognized arg type: {type(arg)}")
         elif isinstance(arg, specs.AttrFuture):
-            # noinspection PyProtectedMember
             config_key = config._keys[arg.parent_spec_id]
             result = self._get(config, config_key)
 
             for attr in arg.attrs:
                 result = getattr(result, attr)
-        elif isinstance(arg, (tuple, list)):
-            result = type(arg)(self._process_arg(config, elem) for elem in arg)
-        elif isinstance(arg, dict):
-            result = {k: self._process_arg(config, v) for k, v in arg.items()}
         else:
             result = arg
 
         return result
 
     def _materialize_spec(
-        self, config: di_config.Config, spec: specs.Prototype
-    ) -> specs.Prototype:
+        self, config: di_config.Config, spec: specs._Prototype
+    ) -> specs._Prototype:
         """Return Spec copy with materialized args/kwargs."""
         materialized_args = [
             self._process_arg(config, arg) for arg in spec.args
@@ -77,35 +80,26 @@ class Container:
             key: self._process_arg(config, arg)
             for key, arg in spec.kwargs.items()
         }
-        if spec.lazy_kwargs:
-            materialized_lazy_kwargs = self._process_arg(
-                config, spec.lazy_kwargs
-            )
-            materialized_kwargs.update(
-                {
-                    key: self._process_arg(config, arg)
-                    for key, arg in materialized_lazy_kwargs.items()
-                }
-            )
 
         return spec.copy_with(*materialized_args, **materialized_kwargs)
 
     def _get(self, config: di_config.Config, key: str) -> Any:
         """Get instance represented by key in given config."""
         spec = getattr(config, key)
-        if isinstance(spec, specs.Object):
+        if isinstance(spec, specs._Object):
             return spec.obj
-        elif isinstance(spec, specs.Singleton):
+        elif isinstance(spec, specs._Singleton):
+            key = spec.spec_id
             try:
-                return self._instance_cache[spec.spec_id]
+                return self._instance_cache[key]
             except KeyError:
                 pass
 
             instance = self._materialize_spec(config, spec).instantiate()
-            self._instance_cache[spec.spec_id] = instance
+            self._instance_cache[key] = instance
             return instance
-        elif isinstance(spec, specs.Prototype):
-            spec = cast(specs.Prototype, spec)
+        elif isinstance(spec, specs._Prototype):
+            spec = cast(specs._Prototype, spec)
             return self._materialize_spec(config, spec).instantiate()
         elif isinstance(spec, di_config.Config):
             return ConfigProxy(self, spec)
@@ -136,11 +130,9 @@ class Container:
         """Clear instance cache."""
         self._instance_cache.clear()
 
-    def __getattr__(self, key: str) -> Any:
-        return self._get(self._config, key)
-
     def __getitem__(self, key: str) -> Any:
-        return utils.nested_getattr(self, key)
+        return utils.nested_getattr(self.config, key)
 
-    def __dir__(self) -> Iterable[str]:
-        return dir(self._config)
+
+def get_container(config: di_config.Config[T]) -> Container[T]:
+    return Container(config)
