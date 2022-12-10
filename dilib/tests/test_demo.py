@@ -53,16 +53,12 @@ class Car(dilib.SingletonMixin):
         self.state = 0
 
 
-# noinspection PyTypeChecker
 class EngineConfig(dilib.Config):
-
     db_address = dilib.GlobalInput(type_=str, default="ava-db")
-    engine = DBEngine(db_address)  # type: ignore
+    engine = DBEngine(db_address)
 
 
-# noinspection PyTypeChecker
 class CarConfig(dilib.Config):
-
     engine_config = EngineConfig()
 
     seat_cls = dilib.Object(Seat)
@@ -70,11 +66,11 @@ class CarConfig(dilib.Config):
         lambda cls, n: [cls() for _ in range(n)], seat_cls, 2
     )
 
-    car = Car(seats, engine=engine_config.engine)  # type: ignore
+    car = Car(seats, engine=engine_config.engine)
 
 
 def test_basic_demo():
-    config = CarConfig().get(db_address="ava-db")
+    config = dilib.get_config(CarConfig, db_address="ava-db")
     container = dilib.Container(config)
 
     car = container.car
@@ -84,8 +80,8 @@ def test_basic_demo():
 
 
 def test_perturb_demo():
-    config = CarConfig().get(db_address="ava-db")
-    config.engine_config.engine = MockEngine()
+    config = dilib.get_config(CarConfig, db_address="ava-db")
+    config.engine_config.engine = MockEngine()  # type: ignore
     container = dilib.Container(config)
 
     assert isinstance(container.car.engine, MockEngine)

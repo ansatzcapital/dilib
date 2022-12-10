@@ -1,41 +1,41 @@
+import dataclasses
 import types
-from typing import Any
+from typing import Any, Dict, List, Tuple
 
 import pytest
 
 import dilib
+import dilib.specs
 
 
-class Value:
-    def __init__(self, value: Any):
-        self.value = value
+@dataclasses.dataclass(frozen=True)
+class ValueWrapper:
+    value: Any
 
 
-class Values:
-    def __init__(self, x: Any, y: Any, z: Any):
-        self.x = x
-        self.y = y
-        self.z = z
+@dataclasses.dataclass(frozen=True)
+class ValuesWrapper:
+    x: Any
+    y: Any
+    z: Any
 
 
-class SingletonValue(dilib.SingletonMixin):
-    def __init__(self, value: int):
-        self.value = value
+@dataclasses.dataclass(frozen=True)
+class SingletonValueWrapper(dilib.SingletonMixin, ValueWrapper):
+    pass
 
 
-class PrototypeValue(dilib.PrototypeMixin):
-    def __init__(self, value: int):
-        self.value = value
+@dataclasses.dataclass(frozen=True)
+class PrototypeValueWrapper(dilib.PrototypeMixin, ValueWrapper):
+    pass
 
 
-# noinspection PyTypeChecker
 class BasicConfig(dilib.Config):
-
     x = dilib.Object(1)
-    y = dilib.Prototype(lambda x, offset: x + offset, x, offset=1)
+    y: int = dilib.Prototype(lambda x, offset: x + offset, x, offset=1)
 
-    foo = SingletonValue(value=x)  # type: ignore
-    bar = PrototypeValue(value=y)  # type: ignore
+    foo = SingletonValueWrapper(value=x)
+    bar = PrototypeValueWrapper(value=y)
 
 
 def test_config_spec():
@@ -52,28 +52,31 @@ def test_config_spec():
 
 
 def test_basic():
-    config = BasicConfig().get()
+    config = dilib.get_config(BasicConfig)
 
-    assert config.x.obj == 1
-    assert isinstance(config.y.cls, types.LambdaType)
-    assert config.foo.cls is SingletonValue  # noqa
-    assert config.bar.cls is PrototypeValue  # noqa
+    assert config._get_spec("x").obj == 1
+    assert isinstance(config._get_spec("y").func_or_type, types.LambdaType)
+    assert config._get_spec("foo").func_or_type is SingletonValueWrapper
+    assert config._get_spec("bar").func_or_type is PrototypeValueWrapper
 
 
 def test_perturb_basic():
-    config0 = BasicConfig().get()
+    config0: BasicConfig = dilib.get_config(BasicConfig)
 
     config0.x = 2
-    assert config0.x.obj == 2  # type: ignore
+    spec_x = config0._get_spec("x")
+    assert isinstance(spec_x, dilib.specs._Object)
+    assert spec_x.obj == 2
 
-    # No class-level interactions
-    config1 = BasicConfig().get()
+    # Note that there are no class-level interactions, so if we
+    # create a new instance, it doesn't have prior perturbations
+    config1 = dilib.get_config(BasicConfig)
 
-    assert config1.x.obj == 1  # noqa
+    assert config1._get_spec("x").obj == 1
 
 
 def test_perturb_after_freeze():
-    config = BasicConfig().get()
+    config = dilib.get_config(BasicConfig)
 
     config.freeze()
     with pytest.raises(dilib.FrozenConfigError):
@@ -81,42 +84,34 @@ def test_perturb_after_freeze():
 
 
 def test_add_key_after_load():
-    config = BasicConfig().get()
+    config = dilib.get_config(BasicConfig)
 
     with pytest.raises(dilib.NewKeyConfigError):
         config.new_x = 100
 
 
-# noinspection PyTypeChecker
 class ParentConfig0(dilib.Config):
-
     basic_config = BasicConfig()
 
-    baz0 = SingletonValue(basic_config.x)  # type: ignore
+    baz0 = SingletonValueWrapper(basic_config.x)
 
 
-# noinspection PyTypeChecker
 class ParentConfig1(dilib.Config):
-
     basic_config = BasicConfig()
 
-    baz1 = SingletonValue(basic_config.x)  # type: ignore
+    baz1 = SingletonValueWrapper(basic_config.x)
     some_str1 = dilib.Object("abc")
 
 
-# noinspection PyTypeChecker
 class GrandParentConfig(dilib.Config):
-
     parent_config0 = ParentConfig0()
     parent_config1 = ParentConfig1()
 
-    foobar = SingletonValue(parent_config0.basic_config.x)  # type: ignore
+    foobar = SingletonValueWrapper(parent_config0.basic_config.x)
     some_str0 = dilib.Object("hi")
 
 
-# noinspection PyTypeChecker
 class ErrorGrandParentConfig(dilib.Config):
-
     parent_config0 = ParentConfig0()
     parent_config1 = ParentConfig1()
 
@@ -126,7 +121,7 @@ class ErrorGrandParentConfig(dilib.Config):
 
 
 def test_dir():
-    config = GrandParentConfig().get()
+    config = dilib.get_config(GrandParentConfig)
 
     assert dir(config) == [
         "foobar",
@@ -138,7 +133,7 @@ def test_dir():
 
 
 def test_nested_config():
-    config = GrandParentConfig().get()
+    config = dilib.get_config(GrandParentConfig)
 
     assert id(config.parent_config0.basic_config) == id(
         config.parent_config1.basic_config
@@ -146,21 +141,19 @@ def test_nested_config():
 
 
 def test_perturb_nested_config_attrs():
-    config = GrandParentConfig().get()
+    config = dilib.get_config(GrandParentConfig)
 
     config.some_str0 = "hello"
     config.parent_config0.basic_config.x = 100
     config.parent_config1.some_str1 = "def"
 
-    # noinspection PyUnresolvedReferences
-    assert config.some_str0.obj == "hello"  # type: ignore
-    assert config.parent_config1.basic_config.x.obj == 100
-    # noinspection PyUnresolvedReferences
-    assert config.parent_config1.some_str1.obj == "def"  # type: ignore
+    assert config._get_spec("some_str0").obj == "hello"
+    assert config.parent_config1.basic_config._get_spec("x").obj == 100
+    assert config.parent_config1._get_spec("some_str1").obj == "def"
 
 
 def test_perturb_nested_config_strs():
-    config = GrandParentConfig().get()
+    config = dilib.get_config(GrandParentConfig)
 
     config["some_str0"] = "hello"
     config["parent_config0.basic_config.x"] = 100
@@ -172,21 +165,19 @@ def test_perturb_nested_config_strs():
 
 
 def test_perturb_nested_child_config():
-    config = GrandParentConfig().get()
+    config = dilib.get_config(GrandParentConfig)
 
     with pytest.raises(dilib.SetChildConfigError):
-        config.parent_config0 = ParentConfig1()
+        config.parent_config0 = ParentConfig1()  # type: ignore
 
 
 class InputConfig0(dilib.Config):
-
     name = dilib.GlobalInput(str)
     context = dilib.GlobalInput(str, default="default")
     x = dilib.LocalInput(int)
 
 
 class InputConfig1(dilib.Config):
-
     input_config0 = InputConfig0(x=1)
 
     y = dilib.Prototype(
@@ -195,7 +186,6 @@ class InputConfig1(dilib.Config):
 
 
 class BadInputConfig(dilib.Config):
-
     input_config0 = InputConfig0()  # Note missing inputs
 
 
@@ -209,66 +199,70 @@ def test_input_config():
     with pytest.raises(dilib.InputConfigError):
         BadInputConfig().get(name="hi")
 
-    config = InputConfig1().get(name="hi")
+    config = dilib.get_config(InputConfig1, name="hi")
 
-    assert config.input_config0.name.obj == "hi"
-    assert config.input_config0.context.obj == "default"
-    assert config.input_config0.x.obj == 1
+    assert config.input_config0._get_spec("name").obj == "hi"
+    assert config.input_config0._get_spec("context").obj == "default"
+    assert config.input_config0._get_spec("x").obj == 1
 
 
 class CollectionConfig(dilib.Config):
-
     x = dilib.Object(1)
     y = dilib.Object(2)
+    z = dilib.Object(3)
 
-    foo_tuple = dilib.SingletonTuple(x, y)
-    foo_list = dilib.SingletonList(x, y)
-    foo_dict_kwargs = dilib.SingletonDict(x=x, y=y)
-    foo_dict_values0 = dilib.SingletonDict({1: x, 2: y})
-    foo_dict_values1 = dilib.SingletonDict({"values": x})
+    # TODO: Support more narrow Tuple types
+    foo_tuple: Tuple = dilib.SingletonTuple(x, y)
+    foo_list: List[int] = dilib.SingletonList(x, y)
+    foo_dict_kwargs: Dict[str, int] = dilib.SingletonDict(x=x, y=y)
+    foo_dict_values0: Dict[int, int] = dilib.SingletonDict({1: x, 2: y})
+    # TODO: Re-enable when min python version is 3.8
+    # foo_dict_values1: Dict[str, int] = dilib.SingletonDict(values=x)
+    foo_dict_values2: Dict[int, int] = dilib.SingletonDict({"x": x, "y": y}, z=z)
+
+    # Check that untyped values don't trigger mypy errors
+    _untyped_foo_tuple = dilib.SingletonTuple(x, y)
+    _untyped_foo_list = dilib.SingletonList(x, y)
+    _untyped_foo_dict_kwargs = dilib.SingletonDict(x=x, y=y)
+    _untyped_foo_dict_values0 = dilib.SingletonDict({1: x, 2: y})
 
 
 class AnonymousConfig(dilib.Config):
-
-    x = dilib.Singleton(Value, 1)
-    y = dilib.Singleton(Value, dilib.Singleton(Value, x))
-    z = dilib.Singleton(Value, dilib.Prototype(Value, x))
+    x = dilib.Singleton(ValueWrapper, 1)
+    y = dilib.Singleton(ValueWrapper, dilib.Singleton(ValueWrapper, x))
+    z = dilib.Singleton(ValueWrapper, dilib.Prototype(ValueWrapper, x))
 
 
 class WrapperConfig(dilib.Config):
-
-    _value = dilib.Singleton(Value, 1)
-    value = dilib.Singleton(Value, _value)
+    _value = dilib.Singleton(ValueWrapper, 1)
+    value = dilib.Singleton(ValueWrapper, _value)
 
 
 class ForwardConfig(dilib.Config):
-
     other_config = GrandParentConfig()
 
     x = dilib.Forward(other_config.parent_config0.basic_config.x)
-    x_value = dilib.Singleton(Value, value=x)
+    x_value = dilib.Singleton(ValueWrapper, value=x)
 
     foo = dilib.Forward(other_config.parent_config0.basic_config.foo)
-    foo_value = dilib.Singleton(Value, value=foo)
+    foo_value = dilib.Singleton(ValueWrapper, value=foo)
 
 
 class PartialKwargsConfig(dilib.Config):
-
     x = dilib.Object(1)
     y = dilib.Object(2)
 
     partial_kwargs = dilib.SingletonDict(x=x, y=y)
 
-    values = dilib.Singleton(Values, z=x, __lazy_kwargs=partial_kwargs)
+    values = dilib.Singleton(ValuesWrapper, z=x, __lazy_kwargs=partial_kwargs)
 
 
 class PartialKwargsOtherConfig(dilib.Config):
-
     partial_kwargs_config = PartialKwargsConfig()
 
     z = dilib.Object(3)
     values = dilib.Singleton(
-        Values, z=z, __lazy_kwargs=partial_kwargs_config.partial_kwargs
+        ValuesWrapper, z=z, __lazy_kwargs=partial_kwargs_config.partial_kwargs
     )
 
 
@@ -296,3 +290,13 @@ def test_global_input_collisions():
         except dilib.InputConfigError as exc:
             assert "collision" in str(exc) and "'name'" in str(exc)
             raise
+
+
+def test_typing():
+    cfg0: BasicConfig = dilib.get_config(BasicConfig)
+
+    # Would trigger mypy error:
+    # _0: str = cfg0.x
+
+    _0: int = cfg0.x  # noqa: F841
+    _1: int = cfg0.y  # noqa: F841

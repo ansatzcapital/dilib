@@ -6,13 +6,13 @@ from dilib.tests import test_config
 
 def test_basic():
     config = test_config.BasicConfig().get()
-    container = dilib.Container(config)
+    container = dilib.get_container(config)
 
     assert container.x == 1
     assert container.y == 2
-    assert isinstance(container.foo, test_config.SingletonValue)
+    assert isinstance(container.foo, test_config.SingletonValueWrapper)
     assert container.foo.value == 1
-    assert isinstance(container.bar, test_config.PrototypeValue)
+    assert isinstance(container.bar, test_config.PrototypeValueWrapper)
     assert container.bar.value == 2
 
     assert container.foo is container.foo  # foo is a Singleton
@@ -23,7 +23,7 @@ def test_perturb_basic():
     config = test_config.BasicConfig().get()
     config.x = 2
 
-    container = dilib.Container(config)
+    container = dilib.get_container(config)
     assert container.y == 3
     assert container.foo.value == 2
     assert container.bar.value == 3
@@ -31,7 +31,7 @@ def test_perturb_basic():
 
 def test_get_nested():
     config = test_config.GrandParentConfig().get()
-    container = dilib.Container(config)
+    container = dilib.get_container(config)
 
     assert container.parent_config0.basic_config.x == 1
     assert container["parent_config0.basic_config.x"] == 1
@@ -39,7 +39,7 @@ def test_get_nested():
 
 def test_dir():
     config = test_config.GrandParentConfig().get()
-    container = dilib.Container(config)
+    container = dilib.get_container(config)
 
     assert dir(container) == [
         "foobar",
@@ -54,7 +54,7 @@ def test_perturb_nested():
     config = test_config.GrandParentConfig().get()
     config.parent_config0.basic_config.x = 10
 
-    container = dilib.Container(config)
+    container = dilib.get_container(config)
 
     assert container.parent_config0.basic_config.x == 10
     assert container.parent_config0.basic_config.foo.value == 10
@@ -70,7 +70,7 @@ def test_perturb_nested():
 
 def test_nested_keyerror():
     config = test_config.ErrorGrandParentConfig().get()
-    container = dilib.Container(config)
+    container = dilib.get_container(config)
 
     with pytest.raises(KeyError):
         try:
@@ -87,7 +87,7 @@ def test_input_config():
     config = test_config.InputConfig1().get(name="hi")
     config.input_config0.x = 100
 
-    container = dilib.Container(config)
+    container = dilib.get_container(config)
     assert container.input_config0.name == "hi"
     assert container.input_config0.context == "default"
     assert container.input_config0.x == 100
@@ -95,8 +95,8 @@ def test_input_config():
 
 
 def test_collection_config():
-    config = test_config.CollectionConfig().get()
-    container = dilib.Container(config)
+    config = dilib.get_config(test_config.CollectionConfig)
+    container = dilib.get_container(config)
 
     assert container.x == 1
     assert container.y == 2
@@ -104,14 +104,16 @@ def test_collection_config():
     assert container.foo_list == [1, 2]
     assert container.foo_dict_kwargs == {"x": 1, "y": 2}
     assert container.foo_dict_values0 == {1: 1, 2: 2}
-    assert container.foo_dict_values1 == {"values": 1}
+    # TODO: Re-enable when min python version is 3.8
+    # assert container.foo_dict_values1 == {"values": 1}
+    assert container.config.foo_dict_values2 == {"x": 1, "y": 2, "z": 3}
 
     assert container.foo_tuple is container.foo_tuple
 
 
 def test_anonymous():
     config = test_config.AnonymousConfig().get()
-    container = dilib.Container(config)
+    container = dilib.get_container(config)
 
     assert container.y.value.value is container.x
     assert container.z.value.value is container.x
@@ -119,14 +121,14 @@ def test_anonymous():
 
 def test_underscore():
     config = test_config.WrapperConfig().get()
-    container = dilib.Container(config)
+    container = dilib.get_container(config)
 
     assert container.value.value is container._value
 
 
 def test_forward():
     config = test_config.ForwardConfig().get()
-    container = dilib.Container(config)
+    container = dilib.get_container(config)
 
     assert (
         container.foo is container.other_config.parent_config0.basic_config.foo
@@ -142,7 +144,7 @@ def test_perturb_forward():
 
     config.x = 1000
 
-    container = dilib.Container(config)
+    container = dilib.get_container(config)
 
     # Objs that depend on original x remain unperturbed, but objs
     # that depend on the forward alias are perturbed.
@@ -158,7 +160,7 @@ def test_perturb_partial_kwargs():
     config.x = 10
     config.y = 20
 
-    container = dilib.Container(config)
+    container = dilib.get_container(config)
 
     assert container.x == 10
     assert container.y == 20
@@ -172,7 +174,7 @@ def test_perturb_partial_kwargs_other():
 
     config.partial_kwargs_config.x = 10
 
-    container = dilib.Container(config)
+    container = dilib.get_container(config)
 
     assert container.partial_kwargs_config.values.x == 10
     assert container.partial_kwargs_config.values.y == 2
@@ -203,7 +205,7 @@ class NestedConfigObjAttrConfig(dilib.Config):
 
 def test_obj_attr():
     config = ObjAttrConfig().get()
-    container = dilib.Container(config)
+    container = dilib.get_container(config)
 
     assert container.test_obj.test_attr == 1
     assert container.test_obj_attr == 1
@@ -211,8 +213,29 @@ def test_obj_attr():
 
 def test_nested_config_obj_attr():
     config = NestedConfigObjAttrConfig().get()
-    container = dilib.Container(config)
+    container = dilib.get_container(config)
 
     assert container.test_obj.test_attr == 1
     assert container.test_obj_attr == 1
     assert container.test_obj is container.cfg.test_obj
+
+
+def test_typing():
+    config = dilib.get_config(test_config.ParentConfig1)
+
+    # Would trigger mypy error:
+    # container: dilib.Container[test_config.BasicConfig] = dilib.get_container(
+    #     config
+    # )
+
+    container: dilib.Container[test_config.ParentConfig1] = dilib.get_container(
+        config
+    )
+
+    # Would trigger mypy error:
+    # x: str = container.config.basic_config.x
+
+    x: int = container.config.basic_config.x
+    assert x == 1
+    y: int = container.config.basic_config.y
+    assert y == 2

@@ -1,54 +1,25 @@
 from __future__ import annotations
 
-import datetime
-from typing import Any, Dict, Iterable, Optional, Set, Type, Union
+from typing import Any, Dict, Iterable, Optional, Set, Type, TypeVar, Union
 
-from dilib import errors, specs, utils
+import dilib.errors
+import dilib.specs
+import dilib.utils
 
-PRIMITIVE_TYPES = (
-    type(None),
-    bool,
-    int,
-    float,
-    str,
-    datetime.date,
-    datetime.time,
-    datetime.datetime,
-)
+T = TypeVar("T")
+TC = TypeVar("TC", bound="Config")
 
 
-def check_type(
-    value: Any, type_: Optional[Type] = None, tag: Optional[str] = None
-):
-    if type_ is None:
-        return
+class ConfigSpec(dilib.specs.Spec[TC]):
+    """Represents nestable bag of types and values."""
 
-    if hasattr(type_, "__args__"):
-        # TODO! Check nested typing types here.
-        return
-    else:
-        types = (type_,)
-
-    if not isinstance(value, types):
-        raise errors.InputConfigError(
-            f"{tag} input mismatch types: {type(value)} is not {type_}"
-        )
-
-
-class ConfigSpec(specs.Spec):
-    """Spec for Configs."""
-
-    def __init__(self, cls: Type[Config], **kwargs):
-        super().__init__()
+    def __init__(self, cls: Type[TC], **local_inputs):
+        super().__init__(type_=cls)
         self.cls = cls
-        self.kwargs = kwargs
-
-    def _instantiate(self, config_locator: ConfigLocator) -> Config:
-        """Instantiate, useful when using outside DI framework."""
-        return specs.instantiate(self.cls, config_locator, **self.kwargs)
+        self.local_inputs = local_inputs
 
     def get(self, **global_inputs) -> Config:
-        """Get instance of this Config."""
+        """Instantiate with given global inputs."""
         config_locator = ConfigLocator(**global_inputs)
         config = config_locator.get(self)
 
@@ -56,7 +27,7 @@ class ConfigSpec(specs.Spec):
         global_input_keys = config._get_all_global_input_keys()
         extra_global_input_keys = set(global_inputs.keys()) - global_input_keys
         if extra_global_input_keys:
-            raise errors.InputConfigError(
+            raise dilib.errors.InputConfigError(
                 f"Provided extra global inputs "
                 f"not specified in configs: {extra_global_input_keys}"
             )
@@ -67,20 +38,20 @@ class ConfigSpec(specs.Spec):
         return (
             type(other) is ConfigSpec
             and self.cls is other.cls
-            and self.kwargs == other.kwargs
+            and self.local_inputs == other.local_inputs
         )
 
     def __hash__(self) -> int:
         return hash(
             (
                 self.__class__.__name__,
-                frozenset(self.kwargs.items()),
+                frozenset(self.local_inputs.items()),
             )
         )
 
 
 class Config:
-    """dataclass-style description of params and obj graph."""
+    """Description of how specs depend on each other."""
 
     _INTERNAL_FIELDS = (
         "_config_locator",
@@ -94,33 +65,34 @@ class Config:
         "_process_input",
         "_load",
         "freeze",
+        "_get_spec",
+        "_get_child_class",
     )
 
-    def __new__(cls: Type, **kwargs):
-        # noinspection PyTypeChecker
-        return ConfigSpec(cls, **kwargs)
+    def __new__(cls: Type[TC], *args, _materialize: bool = False, **kwargs):
+        if _materialize:
+            return super().__new__(cls)
+        else:
+            if args:
+                raise ValueError("args must be empty")
+
+            return ConfigSpec(cls, **kwargs)
 
     def __init__(
         self, config_locator: Optional[ConfigLocator] = None, **local_inputs
     ):
         if config_locator is None:
-            raise ValueError(
-                "config_locator is only defaulted to "
-                "None to aid PyCharm inspections. "
-                "Use config's cls.get() instead."
-            )
+            raise ValueError("Use config.get() to get instance of config")
         self._config_locator = config_locator
 
-        for value in local_inputs.values():
-            if not isinstance(value, PRIMITIVE_TYPES):
-                raise errors.InputConfigError(
-                    f"Unsupported local input type: {type(value)}"
-                )
-
-        self._keys: Dict[specs.SpecID, str] = {}
-        self._specs: Dict[str, specs.Spec] = {}
+        # spec id -> spec key
+        self._keys: Dict[dilib.specs.SpecID, str] = {}
+        # key -> spec
+        self._specs: Dict[str, dilib.specs.Spec] = {}
+        # child config key -> child config
         self._child_configs: Dict[str, Config] = {}
-        self._global_inputs: Dict[str, specs.SpecID] = {}
+        # global input key -> spec id
+        self._global_inputs: Dict[str, dilib.specs.SpecID] = {}
 
         self._loaded = False
         self._frozen = False
@@ -128,14 +100,14 @@ class Config:
         self._load(**local_inputs)
 
     # For mypy
-    def __call__(self, *args, **kwargs):
+    def __call__(self, *args, **kwargs) -> Any:
         return None
 
     def _get_all_global_input_keys(
-        self, all_global_input_keys: Optional[Dict[str, specs.SpecID]] = None
+        self,
+        all_global_input_keys: Optional[Dict[str, dilib.specs.SpecID]] = None,
     ) -> Set[str]:
-        """Recursively get all global input keys of this config and all child
-        configs."""
+        """Recursively get all global input keys of self and its children."""
         all_global_input_keys = (
             all_global_input_keys if all_global_input_keys is not None else {}
         )
@@ -143,7 +115,7 @@ class Config:
         for key, spec_id in self._global_inputs.items():
             if key in all_global_input_keys:
                 if all_global_input_keys[key] != spec_id:
-                    raise errors.InputConfigError(
+                    raise dilib.errors.InputConfigError(
                         f"Found global input collision: {key!r}"
                     )
 
@@ -155,23 +127,29 @@ class Config:
 
         return set(all_global_input_keys.keys())
 
+    # noinspection PyProtectedMember
     def _process_input(
-        self, key: str, spec: specs.Input, inputs: Dict[str, Any], tag: str
-    ) -> specs.Object:
+        self,
+        key: str,
+        spec: dilib.specs._Input,
+        inputs: Dict[str, Any],
+        desc: str,
+    ) -> dilib.specs._Object:
         """Convert Input spec to Object spec."""
         try:
             value = inputs[key]
         except KeyError:
-            if spec.default != specs.MISSING:
+            if spec.default != dilib.specs.MISSING:
                 value = spec.default
             else:
-                raise errors.InputConfigError(f"{tag} input not set: {key!r}")
+                raise dilib.errors.InputConfigError(
+                    f"{desc} input not set: {key!r}"
+                )
 
-        check_type(value, spec.type_, tag=tag)
+        dilib.utils.check_type(value, spec.type_, desc=desc)
 
-        new_spec = specs.Object(value)
-        new_spec.spec_id = spec.spec_id
-        return new_spec
+        # Preserve old spec id
+        return dilib.specs._Object(value, spec_id=spec.spec_id)
 
     def _load(self, **local_inputs):
         """Transfer class variables to instance."""
@@ -189,7 +167,7 @@ class Config:
             if isinstance(spec, dict):
                 continue
 
-            if not isinstance(spec, specs.Spec):
+            if not isinstance(spec, dilib.specs.Spec):
                 raise ValueError(
                     f"Expected Spec type, got {type(spec)} with {key!r}"
                 )
@@ -198,13 +176,15 @@ class Config:
             self._keys[spec.spec_id] = key
 
             # Handle inputs
-            if isinstance(spec, specs.GlobalInput):
+            # noinspection PyProtectedMember
+            if isinstance(spec, dilib.specs._GlobalInput):
                 self._global_inputs[key] = spec.spec_id
 
                 spec = self._process_input(
                     key, spec, self._config_locator.global_inputs, "Global"
                 )
-            elif isinstance(spec, specs.LocalInput):
+            # noinspection PyProtectedMember
+            elif isinstance(spec, dilib.specs._LocalInput):
                 spec = self._process_input(key, spec, local_inputs, "Local")
 
             # Handle child configs
@@ -220,9 +200,23 @@ class Config:
         """Freeze to prevent any more perturbations to this Config instance."""
         self._frozen = True
 
-    # NB: Have to override getattribute instead of getattr so as to
+    def _get_spec(self, key: str) -> dilib.specs.Spec:
+        """More type-safe alternative to get spec than attr access."""
+        spec = self[key]
+        if not isinstance(spec, dilib.specs.Spec):
+            raise TypeError(type(spec))
+        return spec
+
+    def _get_child_config(self, key: str) -> Config:
+        """More type-safe alternative to get child config than attr access."""
+        child_config = self[key]
+        if not isinstance(child_config, Config):
+            raise TypeError(type(child_config))
+        return child_config
+
+    # NB: Have to override getattribute instead of getattr to
     # prevent initial, class-level values from being used.
-    def __getattribute__(self, key: str) -> Union[specs.Spec, Config]:
+    def __getattribute__(self, key: str) -> Union[dilib.specs.Spec, Config]:
         if (
             key.startswith("__")
             or key == "_INTERNAL_FIELDS"
@@ -239,7 +233,7 @@ class Config:
             raise KeyError(f"{self.__class__}: {key!r}")
 
     def __getitem__(self, key: str) -> Any:
-        return utils.nested_getattr(self, key)
+        return dilib.utils.nested_getattr(self, key)
 
     def __setattr__(self, key: str, value: Any):
         if (
@@ -251,30 +245,33 @@ class Config:
             return
 
         if self._frozen:
-            raise errors.FrozenConfigError(
+            raise dilib.errors.FrozenConfigError(
                 f"Cannot perturb frozen config: key={key!r}"
             )
 
         if key not in self._specs and self._loaded:
             if key in self._child_configs:
-                raise errors.SetChildConfigError(
+                raise dilib.errors.SetChildConfigError(
                     f"Cannot set child config: key={key!r}"
                 )
             else:
-                raise errors.NewKeyConfigError(
+                raise dilib.errors.NewKeyConfigError(
                     f"Cannot add new keys to a loaded config: key={key!r}"
                 )
 
         old_spec = self._specs[key]
 
-        if not isinstance(value, specs.Spec):
-            value = specs.Object(value)
+        # Automatically wrap input if user hasn't done so
+        if not isinstance(value, dilib.specs.Spec):
+            value = dilib.specs.Object(value)
 
         self._specs[key] = value
+
+        # Transfer old spec id
         value.spec_id = old_spec.spec_id
 
     def __setitem__(self, key: str, value: Any):
-        utils.nested_setattr(self, key, value)
+        dilib.utils.nested_setattr(self, key, value)
 
     def __dir__(self) -> Iterable[str]:
         return sorted(
@@ -283,7 +280,7 @@ class Config:
 
 
 class ConfigLocator:
-    """Service locator to get instances of Configs by types."""
+    """Service locator to get instances of Configs by type."""
 
     def __init__(self, **global_inputs):
         self.global_inputs: Dict[str, Any] = global_inputs
@@ -297,7 +294,16 @@ class ConfigLocator:
         except KeyError:
             pass
 
-        # noinspection PyProtectedMember
-        config = config_spec._instantiate(self)
+        config = dilib.specs.instantiate(
+            config_spec.cls,
+            self,
+            _materialize=True,
+            **config_spec.local_inputs,
+        )
         self._config_cache[config_spec] = config
         return config
+
+
+def get_config(config_cls: Type[TC], **global_inputs) -> TC:
+    """More type-safe alternative to getting config objs."""
+    return config_cls().get(**global_inputs)
