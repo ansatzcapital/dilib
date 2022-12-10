@@ -223,14 +223,14 @@ def test_nested_config_obj_attr():
 def test_typing():
     config = dilib.get_config(test_config.ParentConfig1)
 
-    # Would trigger mypy error:
-    # container: dilib.Container[test_config.BasicConfig] = dilib.get_container(
-    #     config
-    # )
+    # Would trigger mypy (and PyCharm, since we're using get_container) error:
+    # container: dilib.Container[
+    #     test_config.BasicConfig,
+    # ] = dilib.get_container(config)
 
-    container: dilib.Container[test_config.ParentConfig1] = dilib.get_container(
-        config
-    )
+    container: dilib.Container[
+        test_config.ParentConfig1
+    ] = dilib.get_container(config)
 
     # Would trigger mypy error:
     # x: str = container.config.basic_config.x

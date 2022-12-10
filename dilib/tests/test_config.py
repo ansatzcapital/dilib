@@ -218,7 +218,9 @@ class CollectionConfig(dilib.Config):
     foo_dict_values0: Dict[int, int] = dilib.SingletonDict({1: x, 2: y})
     # TODO: Re-enable when min python version is 3.8
     # foo_dict_values1: Dict[str, int] = dilib.SingletonDict(values=x)
-    foo_dict_values2: Dict[int, int] = dilib.SingletonDict({"x": x, "y": y}, z=z)
+    foo_dict_values2: Dict[int, int] = dilib.SingletonDict(
+        {"x": x, "y": y}, z=z
+    )
 
     # Check that untyped values don't trigger mypy errors
     _untyped_foo_tuple = dilib.SingletonTuple(x, y)
