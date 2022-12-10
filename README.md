@@ -252,21 +252,3 @@ class FooConfig(dilib.Config):
     foo_factory = dilib.Singleton(FooFactory, db_param)
     foo_client = dilib.Singleton(FooClient, foo_factory=foo_factory)
 ```
-
-### Typing
-
-The next design goal is to add typing to dilib, e.g.:
-
-```python
-import dilib
-
-
-class SomeConfig(dilib.Config):
-    x = dilib.Object(1)  # Should pick up x as int
-    y: Engine = dilib.Singleton(DBEngine, ...)  # Pick the base class for type
-
-
-# ...
-ctr = ...  # Container type should be dilib.Container[SomeConfig]
-x = ctr.config.x  # Type systems should pick up that x is an int
-```
