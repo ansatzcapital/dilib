@@ -1,11 +1,22 @@
 import dataclasses
 import types
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Tuple, Type, TypeVar
 
 import pytest
 
 import dilib
 import dilib.specs
+
+TC = TypeVar("TC", bound=dilib.Config)
+
+
+def get_config(
+    config_cls: Type[TC], more_type_safe: bool, **global_inputs
+) -> TC:
+    if more_type_safe:
+        return dilib.get_config(config_cls, **global_inputs)
+    else:
+        return config_cls().get(**global_inputs)
 
 
 @dataclasses.dataclass(frozen=True)
@@ -51,8 +62,9 @@ def test_config_spec():
     assert hash(BasicConfig(x=1, y="hi")) != hash(BasicConfig())
 
 
-def test_basic():
-    config = dilib.get_config(BasicConfig)
+@pytest.mark.parametrize("more_type_safe", [True, False])
+def test_basic(more_type_safe: bool):
+    config = get_config(BasicConfig, more_type_safe=more_type_safe)
 
     assert config._get_spec("x").obj == 1
     assert isinstance(config._get_spec("y").func_or_type, types.LambdaType)
@@ -60,8 +72,11 @@ def test_basic():
     assert config._get_spec("bar").func_or_type is PrototypeValueWrapper
 
 
-def test_perturb_basic():
-    config0: BasicConfig = dilib.get_config(BasicConfig)
+@pytest.mark.parametrize("more_type_safe", [True, False])
+def test_perturb_basic(more_type_safe: bool):
+    config0: BasicConfig = get_config(
+        BasicConfig, more_type_safe=more_type_safe
+    )
 
     config0.x = 2
     spec_x = config0._get_spec("x")
@@ -75,16 +90,18 @@ def test_perturb_basic():
     assert config1._get_spec("x").obj == 1
 
 
-def test_perturb_after_freeze():
-    config = dilib.get_config(BasicConfig)
+@pytest.mark.parametrize("more_type_safe", [True, False])
+def test_perturb_after_freeze(more_type_safe: bool):
+    config = get_config(BasicConfig, more_type_safe=more_type_safe)
 
     config.freeze()
     with pytest.raises(dilib.FrozenConfigError):
         config.x = 100
 
 
-def test_add_key_after_load():
-    config = dilib.get_config(BasicConfig)
+@pytest.mark.parametrize("more_type_safe", [True, False])
+def test_add_key_after_load(more_type_safe: bool):
+    config = get_config(BasicConfig, more_type_safe=more_type_safe)
 
     with pytest.raises(dilib.NewKeyConfigError):
         config.new_x = 100
@@ -120,8 +137,9 @@ class ErrorGrandParentConfig(dilib.Config):
     foobar = dilib.Forward(parent_config0.non_existent_field)
 
 
-def test_dir():
-    config = dilib.get_config(GrandParentConfig)
+@pytest.mark.parametrize("more_type_safe", [True, False])
+def test_dir(more_type_safe: bool):
+    config = get_config(GrandParentConfig, more_type_safe=more_type_safe)
 
     assert dir(config) == [
         "foobar",
@@ -132,16 +150,18 @@ def test_dir():
     assert dir(config.parent_config0) == ["basic_config", "baz0"]
 
 
-def test_nested_config():
-    config = dilib.get_config(GrandParentConfig)
+@pytest.mark.parametrize("more_type_safe", [True, False])
+def test_nested_config(more_type_safe: bool):
+    config = get_config(GrandParentConfig, more_type_safe=more_type_safe)
 
     assert id(config.parent_config0.basic_config) == id(
         config.parent_config1.basic_config
     )
 
 
-def test_perturb_nested_config_attrs():
-    config = dilib.get_config(GrandParentConfig)
+@pytest.mark.parametrize("more_type_safe", [True, False])
+def test_perturb_nested_config_attrs(more_type_safe: bool):
+    config = get_config(GrandParentConfig, more_type_safe=more_type_safe)
 
     config.some_str0 = "hello"
     config.parent_config0.basic_config.x = 100
@@ -152,8 +172,9 @@ def test_perturb_nested_config_attrs():
     assert config.parent_config1._get_spec("some_str1").obj == "def"
 
 
-def test_perturb_nested_config_strs():
-    config = dilib.get_config(GrandParentConfig)
+@pytest.mark.parametrize("more_type_safe", [True, False])
+def test_perturb_nested_config_strs(more_type_safe: bool):
+    config = get_config(GrandParentConfig, more_type_safe=more_type_safe)
 
     config["some_str0"] = "hello"
     config["parent_config0.basic_config.x"] = 100
@@ -164,8 +185,9 @@ def test_perturb_nested_config_strs():
     assert config["parent_config1.some_str1"].obj == "def"
 
 
-def test_perturb_nested_child_config():
-    config = dilib.get_config(GrandParentConfig)
+@pytest.mark.parametrize("more_type_safe", [True, False])
+def test_perturb_nested_child_config(more_type_safe: bool):
+    config = get_config(GrandParentConfig, more_type_safe=more_type_safe)
 
     with pytest.raises(dilib.SetChildConfigError):
         config.parent_config0 = ParentConfig1()  # type: ignore
@@ -189,7 +211,8 @@ class BadInputConfig(dilib.Config):
     input_config0 = InputConfig0()  # Note missing inputs
 
 
-def test_input_config():
+@pytest.mark.parametrize("more_type_safe", [True, False])
+def test_input_config(more_type_safe: bool):
     with pytest.raises(dilib.InputConfigError):
         InputConfig1().get()
 
@@ -199,7 +222,7 @@ def test_input_config():
     with pytest.raises(dilib.InputConfigError):
         BadInputConfig().get(name="hi")
 
-    config = dilib.get_config(InputConfig1, name="hi")
+    config = get_config(InputConfig1, name="hi", more_type_safe=more_type_safe)
 
     assert config.input_config0._get_spec("name").obj == "hi"
     assert config.input_config0._get_spec("context").obj == "default"
@@ -284,7 +307,6 @@ def test_extra_global_inputs():
 
 
 class InputConfigWithCollision(dilib.Config):
-
     input_config0 = InputConfig0(x=1)
 
     # "name" collides with input_config0.name
@@ -301,10 +323,13 @@ def test_global_input_collisions():
 
 
 def test_typing():
-    cfg0: BasicConfig = dilib.get_config(BasicConfig)
+    # Would trigger mypy error:
+    # cfg0: ParentConfig1 = dilib.get_config(ParentConfig0)
+
+    cfg0: ParentConfig1 = dilib.get_config(ParentConfig1)
 
     # Would trigger mypy error:
-    # _0: str = cfg0.x
+    # _0: str = cfg0.basic_config.x
 
-    _0: int = cfg0.x  # noqa: F841
-    _1: int = cfg0.y  # noqa: F841
+    _0: int = cfg0.basic_config.x  # noqa: F841
+    _1: int = cfg0.basic_config.y  # noqa: F841

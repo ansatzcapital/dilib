@@ -32,6 +32,7 @@ def test_typing():
     spec0: int = dilib.Object(1)
     spec1: int = dilib.Object(2)
     spec2: str = dilib.Object("abc")
+
     _3: int = dilib.GlobalInput(type_=int)  # noqa: F841
     _4: str = dilib.LocalInput(type_=str)  # noqa: F841
     _5: Sequence[str] = dilib.LocalInput(type_=Sequence[str])  # noqa: F841

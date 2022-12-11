@@ -1,80 +1,130 @@
+from typing import Union, Tuple, Type, TypeVar, cast
+
 import pytest
 
 import dilib
 from dilib.tests import test_config
 
-
-def test_basic():
-    config = test_config.BasicConfig().get()
-    container = dilib.get_container(config)
-
-    assert container.x == 1
-    assert container.y == 2
-    assert isinstance(container.foo, test_config.SingletonValueWrapper)
-    assert container.foo.value == 1
-    assert isinstance(container.bar, test_config.PrototypeValueWrapper)
-    assert container.bar.value == 2
-
-    assert container.foo is container.foo  # foo is a Singleton
-    assert container.bar is not container.bar  # foo is a Prototype
+TC = TypeVar("TC", bound=dilib.Config)
 
 
-def test_perturb_basic():
-    config = test_config.BasicConfig().get()
+def get_container_objs(
+    config: Union[TC, Type[TC]], more_type_safe: bool, **global_inputs
+) -> Tuple[dilib.Container[TC], TC]:
+    if more_type_safe:
+        if not isinstance(config, dilib.Config):
+            config = dilib.get_config(config, **global_inputs)
+        elif global_inputs:
+            raise ValueError("Cannot set config obj and global inputs")
+
+        container = dilib.get_container(config)
+
+        config_proxy = container.config
+    else:
+        if not isinstance(config, dilib.Config):
+            config = config().get(**global_inputs)
+        elif global_inputs:
+            raise ValueError("Cannot set config obj and global inputs")
+
+        container = dilib.Container(config)
+
+        # Cast because container will act like TC
+        config_proxy = cast(TC, container)
+    return container, config_proxy
+
+
+@pytest.mark.parametrize("more_type_safe", [True, False])
+def test_basic(more_type_safe: bool):
+    _, config_proxy = get_container_objs(
+        test_config.BasicConfig, more_type_safe=more_type_safe
+    )
+
+    assert config_proxy.x == 1
+    assert config_proxy.y == 2
+    assert isinstance(config_proxy.foo, test_config.SingletonValueWrapper)
+    assert config_proxy.foo.value == 1
+    assert isinstance(config_proxy.bar, test_config.PrototypeValueWrapper)
+    assert config_proxy.bar.value == 2
+
+    assert config_proxy.foo is config_proxy.foo  # foo is a Singleton
+    assert config_proxy.bar is not config_proxy.bar  # foo is a Prototype
+
+
+@pytest.mark.parametrize("more_type_safe", [True, False])
+def test_perturb_basic(more_type_safe: bool):
+    config = test_config.get_config(
+        test_config.BasicConfig, more_type_safe=more_type_safe
+    )
+
     config.x = 2
 
-    container = dilib.get_container(config)
-    assert container.y == 3
-    assert container.foo.value == 2
-    assert container.bar.value == 3
+    _, config_proxy = get_container_objs(config, more_type_safe=more_type_safe)
+    assert config_proxy.y == 3
+    assert config_proxy.foo.value == 2
+    assert config_proxy.bar.value == 3
 
 
-def test_get_nested():
-    config = test_config.GrandParentConfig().get()
-    container = dilib.get_container(config)
+@pytest.mark.parametrize("more_type_safe", [True, False])
+def test_get_nested(more_type_safe: bool):
+    container, config_proxy = get_container_objs(
+        test_config.GrandParentConfig, more_type_safe=more_type_safe
+    )
 
-    assert container.parent_config0.basic_config.x == 1
+    assert config_proxy.parent_config0.basic_config.x == 1
     assert container["parent_config0.basic_config.x"] == 1
 
 
-def test_dir():
-    config = test_config.GrandParentConfig().get()
-    container = dilib.get_container(config)
+@pytest.mark.parametrize("more_type_safe", [True, False])
+def test_dir(more_type_safe: bool):
+    container, config_proxy = get_container_objs(
+        test_config.GrandParentConfig, more_type_safe=more_type_safe
+    )
 
-    assert dir(container) == [
-        "foobar",
-        "parent_config0",
-        "parent_config1",
-        "some_str0",
-    ]
-    assert dir(container.parent_config0) == ["basic_config", "baz0"]
+    assert (
+        dir(container)
+        == dir(config_proxy)
+        == [
+            "foobar",
+            "parent_config0",
+            "parent_config1",
+            "some_str0",
+        ]
+    )
+    assert dir(config_proxy.parent_config0) == ["basic_config", "baz0"]
+    assert dir(container["parent_config0"]) == ["basic_config", "baz0"]
 
 
-def test_perturb_nested():
-    config = test_config.GrandParentConfig().get()
+@pytest.mark.parametrize("more_type_safe", [True, False])
+def test_perturb_nested(more_type_safe: bool):
+    config = test_config.get_config(
+        test_config.GrandParentConfig, more_type_safe=more_type_safe
+    )
+
     config.parent_config0.basic_config.x = 10
 
-    container = dilib.get_container(config)
+    _, config_proxy = get_container_objs(config, more_type_safe=more_type_safe)
 
-    assert container.parent_config0.basic_config.x == 10
-    assert container.parent_config0.basic_config.foo.value == 10
-    assert container.parent_config0.basic_config.bar.value == 11
+    assert config_proxy.parent_config0.basic_config.x == 10
+    assert config_proxy.parent_config0.basic_config.foo.value == 10
+    assert config_proxy.parent_config0.basic_config.bar.value == 11
     assert (
-        container.parent_config0.basic_config.foo
-        is container.parent_config1.basic_config.foo
+        config_proxy.parent_config0.basic_config.foo
+        is config_proxy.parent_config1.basic_config.foo
     )
-    assert container.parent_config0.baz0.value == 10
-    assert container.parent_config1.baz1.value == 10
-    assert container.foobar.value == 10
+    assert config_proxy.parent_config0.baz0.value == 10
+    assert config_proxy.parent_config1.baz1.value == 10
+    assert config_proxy.foobar.value == 10
 
 
-def test_nested_keyerror():
-    config = test_config.ErrorGrandParentConfig().get()
-    container = dilib.get_container(config)
+@pytest.mark.parametrize("more_type_safe", [True, False])
+def test_nested_keyerror(more_type_safe: bool):
+    _, config_proxy = get_container_objs(
+        test_config.ErrorGrandParentConfig, more_type_safe=more_type_safe
+    )
 
     with pytest.raises(KeyError):
         try:
-            container.foobar
+            config_proxy.foobar
         except KeyError as exc:
             assert str(exc) == (
                 "\"<class 'dilib.tests.test_config.ParentConfig0'>: "
@@ -83,106 +133,128 @@ def test_nested_keyerror():
             raise
 
 
-def test_input_config():
-    config = test_config.InputConfig1().get(name="hi")
+@pytest.mark.parametrize("more_type_safe", [True, False])
+def test_input_config(more_type_safe: bool):
+    config = test_config.get_config(
+        test_config.InputConfig1, more_type_safe=more_type_safe, name="hi"
+    )
+
     config.input_config0.x = 100
 
-    container = dilib.get_container(config)
-    assert container.input_config0.name == "hi"
-    assert container.input_config0.context == "default"
-    assert container.input_config0.x == 100
-    assert container.y == 101
+    _, config_proxy = get_container_objs(config, more_type_safe=more_type_safe)
+    assert config_proxy.input_config0.name == "hi"
+    assert config_proxy.input_config0.context == "default"
+    assert config_proxy.input_config0.x == 100
+    assert config_proxy.y == 101
 
 
-def test_collection_config():
-    config = dilib.get_config(test_config.CollectionConfig)
-    container = dilib.get_container(config)
+@pytest.mark.parametrize("more_type_safe", [True, False])
+def test_collection_config(more_type_safe: bool):
+    _, config_proxy = get_container_objs(
+        test_config.CollectionConfig, more_type_safe=more_type_safe
+    )
 
-    assert container.config.x == 1
-    assert container.config.y == 2
-    assert container.config.foo_tuple == (1, 2)
-    assert container.config.foo_list == [1, 2]
-    assert container.config.foo_dict_kwargs == {"x": 1, "y": 2}
-    assert container.config.foo_dict_values0 == {1: 1, 2: 2}
+    assert config_proxy.x == 1
+    assert config_proxy.y == 2
+    assert config_proxy.foo_tuple == (1, 2)
+    assert config_proxy.foo_list == [1, 2]
+    assert config_proxy.foo_dict_kwargs == {"x": 1, "y": 2}
+    assert config_proxy.foo_dict_values0 == {1: 1, 2: 2}
     # TODO: Re-enable when min python version is 3.8
     # assert container.config.foo_dict_values1 == {"values": 1}
-    assert container.config.foo_dict_values2 == {"x": 1, "y": 2, "z": 3}
+    assert config_proxy.foo_dict_values2 == {"x": 1, "y": 2, "z": 3}
 
-    assert container.foo_tuple is container.foo_tuple
-
-
-def test_anonymous():
-    config = test_config.AnonymousConfig().get()
-    container = dilib.get_container(config)
-
-    assert container.y.value.value is container.x
-    assert container.z.value.value is container.x
+    assert config_proxy.foo_tuple is config_proxy.foo_tuple
 
 
-def test_underscore():
-    config = test_config.WrapperConfig().get()
-    container = dilib.get_container(config)
-
-    assert container.value.value is container._value
-
-
-def test_forward():
-    config = test_config.ForwardConfig().get()
-    container = dilib.get_container(config)
-
-    assert (
-        container.foo is container.other_config.parent_config0.basic_config.foo
-    )
-    assert (
-        container.foo_value.value
-        is container.other_config.parent_config0.basic_config.foo
+@pytest.mark.parametrize("more_type_safe", [True, False])
+def test_anonymous(more_type_safe: bool):
+    _, config_proxy = get_container_objs(
+        test_config.AnonymousConfig, more_type_safe=more_type_safe
     )
 
+    assert config_proxy.y.value.value is config_proxy.x
+    assert config_proxy.z.value.value is config_proxy.x
 
-def test_perturb_forward():
-    config = test_config.ForwardConfig().get()
+
+@pytest.mark.parametrize("more_type_safe", [True, False])
+def test_underscore(more_type_safe: bool):
+    _, config_proxy = get_container_objs(
+        test_config.WrapperConfig, more_type_safe=more_type_safe
+    )
+
+    assert config_proxy.value.value is config_proxy._value
+
+
+@pytest.mark.parametrize("more_type_safe", [True, False])
+def test_forward(more_type_safe: bool):
+    _, config_proxy = get_container_objs(
+        test_config.ForwardConfig, more_type_safe=more_type_safe
+    )
+
+    assert (
+        config_proxy.foo
+        is config_proxy.other_config.parent_config0.basic_config.foo
+    )
+    assert (
+        config_proxy.foo_value.value
+        is config_proxy.other_config.parent_config0.basic_config.foo
+    )
+
+
+@pytest.mark.parametrize("more_type_safe", [True, False])
+def test_perturb_forward(more_type_safe: bool):
+    config = test_config.get_config(
+        test_config.ForwardConfig, more_type_safe=more_type_safe
+    )
 
     config.x = 1000
 
-    container = dilib.get_container(config)
+    _, config_proxy = get_container_objs(config, more_type_safe=more_type_safe)
 
     # Objs that depend on original x remain unperturbed, but objs
     # that depend on the forward alias are perturbed.
-    assert container.other_config.parent_config0.basic_config.x == 1
-    assert container.other_config.foobar.value == 1
-    assert container.x == 1000
-    assert container.x_value.value == 1000
+    assert config_proxy.other_config.parent_config0.basic_config.x == 1
+    assert config_proxy.other_config.foobar.value == 1
+    assert config_proxy.x == 1000
+    assert config_proxy.x_value.value == 1000
 
 
-def test_perturb_partial_kwargs():
-    config = test_config.PartialKwargsConfig().get()
+@pytest.mark.parametrize("more_type_safe", [True, False])
+def test_perturb_partial_kwargs(more_type_safe: bool):
+    config = test_config.get_config(
+        test_config.PartialKwargsConfig, more_type_safe=more_type_safe
+    )
 
     config.x = 10
     config.y = 20
 
-    container = dilib.get_container(config)
+    _, config_proxy = get_container_objs(config, more_type_safe=more_type_safe)
 
-    assert container.x == 10
-    assert container.y == 20
-    assert container.values.x == 10
-    assert container.values.y == 20
-    assert container.values.z == 10
+    assert config_proxy.x == 10
+    assert config_proxy.y == 20
+    assert config_proxy.values.x == 10
+    assert config_proxy.values.y == 20
+    assert config_proxy.values.z == 10
 
 
-def test_perturb_partial_kwargs_other():
-    config = test_config.PartialKwargsOtherConfig().get()
+@pytest.mark.parametrize("more_type_safe", [True, False])
+def test_perturb_partial_kwargs_other(more_type_safe: bool):
+    config = test_config.get_config(
+        test_config.PartialKwargsOtherConfig, more_type_safe=more_type_safe
+    )
 
     config.partial_kwargs_config.x = 10
 
-    container = dilib.get_container(config)
+    _, config_proxy = get_container_objs(config, more_type_safe=more_type_safe)
 
-    assert container.partial_kwargs_config.values.x == 10
-    assert container.partial_kwargs_config.values.y == 2
-    assert container.partial_kwargs_config.values.z == 10
+    assert config_proxy.partial_kwargs_config.values.x == 10
+    assert config_proxy.partial_kwargs_config.values.y == 2
+    assert config_proxy.partial_kwargs_config.values.z == 10
 
-    assert container.values.x == 10
-    assert container.values.y == 2
-    assert container.values.z == 3
+    assert config_proxy.values.x == 10
+    assert config_proxy.values.y == 2
+    assert config_proxy.values.z == 3
 
 
 class ObjWithAttr:
@@ -203,21 +275,25 @@ class NestedConfigObjAttrConfig(dilib.Config):
     test_obj_attr = dilib.Forward(cfg.test_obj_attr)
 
 
-def test_obj_attr():
-    config = ObjAttrConfig().get()
-    container = dilib.get_container(config)
+@pytest.mark.parametrize("more_type_safe", [True, False])
+def test_obj_attr(more_type_safe: bool):
+    _, config_proxy = get_container_objs(
+        ObjAttrConfig, more_type_safe=more_type_safe
+    )
 
-    assert container.test_obj.test_attr == 1
-    assert container.test_obj_attr == 1
+    assert config_proxy.test_obj.test_attr == 1
+    assert config_proxy.test_obj_attr == 1
 
 
-def test_nested_config_obj_attr():
-    config = NestedConfigObjAttrConfig().get()
-    container = dilib.get_container(config)
+@pytest.mark.parametrize("more_type_safe", [True, False])
+def test_nested_config_obj_attr(more_type_safe: bool):
+    _, config_proxy = get_container_objs(
+        NestedConfigObjAttrConfig, more_type_safe=more_type_safe
+    )
 
-    assert container.test_obj.test_attr == 1
-    assert container.test_obj_attr == 1
-    assert container.test_obj is container.cfg.test_obj
+    assert config_proxy.test_obj.test_attr == 1
+    assert config_proxy.test_obj_attr == 1
+    assert config_proxy.test_obj is config_proxy.cfg.test_obj
 
 
 def test_typing():
