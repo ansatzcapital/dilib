@@ -1,6 +1,6 @@
 # flake8: noqa
-from dilib.container import ConfigProxy, Container, get_container
 from dilib.config import Config, get_config
+from dilib.container import ConfigProxy, Container, get_container
 from dilib.errors import (
     ConfigError,
     FrozenConfigError,

@@ -12,9 +12,7 @@ TC = TypeVar("TC", bound=dilib.config.Config)
 class ConfigProxy(Generic[TC]):
     """Read-only helper to marshal config values."""
 
-    def __init__(
-        self, container: Container[TC], config: dilib.config.Config
-    ):
+    def __init__(self, container: Container[TC], config: dilib.config.Config):
         self.container = container
         self.config = config
 

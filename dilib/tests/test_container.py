@@ -1,4 +1,4 @@
-from typing import Union, Tuple, Type, TypeVar, cast
+from typing import Tuple, Type, TypeVar, Union, cast
 
 import pytest
 
@@ -13,7 +13,7 @@ def get_container_objs(
 ) -> Tuple[dilib.Container[TC], TC]:
     if more_type_safe:
         if not isinstance(config, dilib.Config):
-            config = dilib.get_config(config, **global_inputs)
+            config = dilib.get_config(cast(Type[TC], config), **global_inputs)
         elif global_inputs:
             raise ValueError("Cannot set config obj and global inputs")
 
@@ -26,11 +26,13 @@ def get_container_objs(
         elif global_inputs:
             raise ValueError("Cannot set config obj and global inputs")
 
+        assert isinstance(config, dilib.Config)
         container = dilib.Container(config)
 
-        # Cast because container will act like TC
-        config_proxy = cast(TC, container)
-    return container, config_proxy
+        config_proxy = container  # type: ignore
+
+    # Cast because container will act like TC
+    return cast(dilib.Container[TC], container), cast(TC, config_proxy)
 
 
 @pytest.mark.parametrize("more_type_safe", [True, False])
