@@ -256,7 +256,11 @@ class PartialKwargsConfig(dilib.Config):
 
     partial_kwargs = dilib.SingletonDict(x=x, y=y)
 
-    values = dilib.Singleton(ValuesWrapper, z=x, __lazy_kwargs=partial_kwargs)
+    values = dilib.Singleton(
+        ValuesWrapper,
+        z=x,
+        __lazy_kwargs=partial_kwargs,  # type: ignore
+    )
 
 
 class PartialKwargsOtherConfig(dilib.Config):
@@ -264,7 +268,9 @@ class PartialKwargsOtherConfig(dilib.Config):
 
     z = dilib.Object(3)
     values = dilib.Singleton(
-        ValuesWrapper, z=z, __lazy_kwargs=partial_kwargs_config.partial_kwargs
+        ValuesWrapper,
+        z=z,
+        __lazy_kwargs=partial_kwargs_config.partial_kwargs,  # type: ignore
     )
 
 

@@ -13,10 +13,13 @@ from typing import (
     cast,
 )
 
+from typing_extensions import ParamSpec
+
 MISSING = object()
 MISSING_DICT: Dict = dict()  # Need a special typed sentinel for mypy
 
 SpecID = int
+P = ParamSpec("P")
 T = TypeVar("T")
 
 
@@ -52,11 +55,7 @@ class Spec(Generic[T]):
 
     NEXT_SPEC_ID = 0
 
-    def __init__(
-        self, type_: Optional[Type[T]] = None, spec_id: Optional[SpecID] = None
-    ):
-        self.type_ = type_
-
+    def __init__(self, spec_id: Optional[SpecID] = None):
         self.spec_id = self._get_next_spec_id() if spec_id is None else spec_id
 
     def __getattr__(self, attr: str) -> AttrFuture:
@@ -100,7 +99,8 @@ class _Input(Spec[T]):
     def __init__(
         self, type_: Optional[Type[T]] = None, default: Any = MISSING
     ):
-        super().__init__(type_=type_)
+        super().__init__()
+        self.type_ = type_
         self.default = default
 
 
@@ -147,10 +147,9 @@ class _Callable(Spec[T]):
         self,
         func_or_type: Callable[..., T],
         *args,
-        type_: Optional[Type] = None,
         **kwargs,
     ):
-        super().__init__(type_=type_)
+        super().__init__()
         self.func_or_type = func_or_type
         self.args = args
         self.lazy_kwargs = kwargs.pop("__lazy_kwargs", None)
@@ -179,14 +178,11 @@ class _Prototype(_Callable[T]):
 
 # noinspection PyPep8Naming
 def Prototype(
-    func_or_type: Callable[..., T],
-    *args,
-    type_: Optional[Type[T]] = None,
-    **kwargs,
+    func_or_type: Callable[P, T], *args: P.args, **kwargs: P.kwargs
 ) -> T:
     """Spec to call with args and no caching."""
     # Cast because the return type will act like a T
-    return cast(T, _Prototype(func_or_type, *args, type_=type_, **kwargs))
+    return cast(T, _Prototype(func_or_type, *args, **kwargs))
 
 
 def _identity(obj: T) -> T:
@@ -212,28 +208,25 @@ class _Singleton(_Callable[T]):
 
 # noinspection PyPep8Naming
 def Singleton(
-    func_or_type: Callable[..., T],
-    *args,
-    type_: Optional[Type[T]] = None,
-    **kwargs,
+    func_or_type: Callable[P, T], *args: P.args, **kwargs: P.kwargs
 ) -> T:
     """Spec to call with args and caching per config field."""
     # Cast because the return type will act like a T
-    return cast(T, _Singleton(func_or_type, *args, type_=type_, **kwargs))
+    return cast(T, _Singleton(func_or_type, *args, **kwargs))
 
 
 # noinspection PyPep8Naming
 def SingletonTuple(*args) -> Tuple:
     """Spec to create tuple with args and caching per config field."""
     # Cast because the return type will act like a TT
-    return cast(Tuple, _Singleton(tuple, args, type_=tuple))
+    return cast(Tuple, _Singleton(tuple, args))
 
 
 # noinspection PyPep8Naming
 def SingletonList(*args) -> List:
     """Spec to create list with args and caching per config field."""
     # Cast because the return type will act like a TL
-    return cast(List, _Singleton(list, args, type_=list))
+    return cast(List, _Singleton(list, args))
 
 
 # TODO: If we drop python3.7, we can use the positional-only params
@@ -262,12 +255,12 @@ def SingletonDict(
     """
     if values is MISSING:
         # Cast because the return type will act like a TD
-        return cast(Dict, _Singleton(dict, type_=dict, **kwargs))
+        return cast(Dict, _Singleton(dict, **kwargs))
     else:
         # Cast because the return type will act like a TD
         return cast(
             Dict,
-            _Singleton(_union_dict_and_kwargs, values, type_=Dict, **kwargs),
+            _Singleton(_union_dict_and_kwargs, values, **kwargs),
         )
 
 

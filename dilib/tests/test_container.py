@@ -98,14 +98,14 @@ def test_collection_config():
     config = dilib.get_config(test_config.CollectionConfig)
     container = dilib.get_container(config)
 
-    assert container.x == 1
-    assert container.y == 2
-    assert container.foo_tuple == (1, 2)
-    assert container.foo_list == [1, 2]
-    assert container.foo_dict_kwargs == {"x": 1, "y": 2}
-    assert container.foo_dict_values0 == {1: 1, 2: 2}
+    assert container.config.x == 1
+    assert container.config.y == 2
+    assert container.config.foo_tuple == (1, 2)
+    assert container.config.foo_list == [1, 2]
+    assert container.config.foo_dict_kwargs == {"x": 1, "y": 2}
+    assert container.config.foo_dict_values0 == {1: 1, 2: 2}
     # TODO: Re-enable when min python version is 3.8
-    # assert container.foo_dict_values1 == {"values": 1}
+    # assert container.config.foo_dict_values1 == {"values": 1}
     assert container.config.foo_dict_values2 == {"x": 1, "y": 2, "z": 3}
 
     assert container.foo_tuple is container.foo_tuple

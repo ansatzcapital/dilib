@@ -14,7 +14,7 @@ class ConfigSpec(dilib.specs.Spec[TC]):
     """Represents nestable bag of types and values."""
 
     def __init__(self, cls: Type[TC], **local_inputs):
-        super().__init__(type_=cls)
+        super().__init__()
         self.cls = cls
         self.local_inputs = local_inputs
 

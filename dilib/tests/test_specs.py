@@ -24,6 +24,10 @@ class MockMultipler(BaseMultiplier):
         return 42
 
 
+def add_ints(x: int, y: int) -> int:
+    return x + y
+
+
 def test_typing():
     spec0: int = dilib.Object(1)
     spec1: int = dilib.Object(2)
@@ -48,3 +52,7 @@ def test_typing():
     # _13: Tuple[str, str] = dilib.SingletonTuple(spec2, spec2)  # noqa: F841
     _14: Dict = dilib.SingletonDict(a=spec0, b=spec1)  # noqa: F841
     _15: Dict[str, int] = dilib.SingletonDict(a=spec0, b=spec1)  # noqa: F841
+
+    # Would cause mypy error:
+    # _16: str = dilib.Singleton(add_ints, 1, "abc")  # noqa: F841
+    _16: int = dilib.Singleton(add_ints, 1, 2)  # noqa: F841

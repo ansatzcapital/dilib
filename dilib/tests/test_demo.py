@@ -71,17 +71,17 @@ class CarConfig(dilib.Config):
 
 def test_basic_demo():
     config = dilib.get_config(CarConfig, db_address="ava-db")
-    container = dilib.Container(config)
+    container = dilib.get_container(config)
 
-    car = container.car
+    car: Car = container.config.car
     assert isinstance(car, Car)
-    assert id(car) == id(container.car)  # Because it's a Singleton
+    assert id(car) == id(container.config.car)  # Because it's a Singleton
     assert isinstance(car.engine, DBEngine)
 
 
 def test_perturb_demo():
     config = dilib.get_config(CarConfig, db_address="ava-db")
     config.engine_config.engine = MockEngine()  # type: ignore
-    container = dilib.Container(config)
+    container = dilib.get_container(config)
 
-    assert isinstance(container.car.engine, MockEngine)
+    assert isinstance(container.config.car.engine, MockEngine)
