@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any, Dict, Generic, Iterable, Optional, TypeVar, Union, cast
 
-import dilib.di_config
+import dilib.config
 import dilib.specs
 import dilib.utils
 
