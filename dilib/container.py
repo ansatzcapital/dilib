@@ -6,14 +6,14 @@ import dilib.config
 import dilib.specs
 import dilib.utils
 
-TC = TypeVar("TC", bound=dilib.di_config.Config)
+TC = TypeVar("TC", bound=dilib.config.Config)
 
 
 class ConfigProxy(Generic[TC]):
     """Read-only helper to marshal config values."""
 
     def __init__(
-        self, container: Container[TC], config: dilib.di_config.Config
+        self, container: Container[TC], config: dilib.config.Config
     ):
         self.container = container
         self.config = config
@@ -33,7 +33,7 @@ class Container(Generic[TC]):
     """Materializes and caches (if necessary) objects based on given config."""
 
     def __init__(self, config: TC):
-        if isinstance(config, dilib.di_config.ConfigSpec):
+        if isinstance(config, dilib.config.ConfigSpec):
             raise ValueError(
                 "Expected Config type, got ConfigSpec. "
                 "Please call .get() on the config."
@@ -54,7 +54,7 @@ class Container(Generic[TC]):
         return cast(TC, ConfigProxy(self, self._config))
 
     # noinspection PyProtectedMember
-    def _process_arg(self, config: dilib.di_config.Config, arg: Any) -> Any:
+    def _process_arg(self, config: dilib.config.Config, arg: Any) -> Any:
         if isinstance(arg, dilib.specs.Spec):
             if arg.spec_id in config._keys:
                 config_key = config._keys[arg.spec_id]
@@ -83,7 +83,7 @@ class Container(Generic[TC]):
 
     # noinspection PyProtectedMember
     def _materialize_callable_spec(
-        self, config: dilib.di_config.Config, spec: dilib.specs._Callable
+        self, config: dilib.config.Config, spec: dilib.specs._Callable
     ) -> dilib.specs._Callable:
         """Return Spec copy with materialized args/kwargs."""
         materialized_args = [
@@ -107,7 +107,7 @@ class Container(Generic[TC]):
         return spec.copy_with(*materialized_args, **materialized_kwargs)
 
     # noinspection PyProtectedMember
-    def _get(self, config: dilib.di_config.Config, key: str) -> Any:
+    def _get(self, config: dilib.config.Config, key: str) -> Any:
         """Get instance represented by key in given config."""
         spec = getattr(config, key)
         if isinstance(spec, dilib.specs._Object):
@@ -125,7 +125,7 @@ class Container(Generic[TC]):
             return instance
         elif isinstance(spec, dilib.specs._Prototype):
             return self._materialize_callable_spec(config, spec).instantiate()
-        elif isinstance(spec, dilib.di_config.Config):
+        elif isinstance(spec, dilib.config.Config):
             return ConfigProxy(self, spec)
         elif isinstance(spec, dilib.specs.AttrFuture):
             key = config._keys[spec.root_spec_id]
