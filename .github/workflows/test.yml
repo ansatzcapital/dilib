@@ -25,6 +25,12 @@ jobs:
           - macos-latest
           - windows-latest
         python-version: ['3.7', '3.8', '3.9', '3.10', '3.11', 'pypy-3.8']
+        exclude:
+          - platform: windows-latest
+            python-version: '3.8'
+        include:
+          - platform: windows-latest
+            python-version: 'windows-3.8'
 
     steps:
       - uses: actions/checkout@v3
@@ -42,4 +48,4 @@ jobs:
           python -m pip install --upgrade setuptools pip wheel
           python -m pip install tox-gh-actions
       - name: Test with tox
-        run: tox -vv
+        run: tox
