@@ -63,6 +63,10 @@ class Container(Generic[TC]):
                     config, arg
                 ).instantiate()
             else:
+                for child_config in config._child_configs.values():
+                    if arg.spec_id in child_config._keys:
+                        return self._process_arg(child_config, arg)
+
                 raise ValueError(f"Unrecognized arg type: {type(arg)}")
         elif isinstance(arg, dilib.specs.AttrFuture):
             config_key = config._keys[arg.root_spec_id]
