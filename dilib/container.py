@@ -1,14 +1,18 @@
 from __future__ import annotations
 
-from typing import Any, Dict, Iterable, Optional, Union, cast
+from typing import Any, Dict, Generic, Iterable, Optional, TypeVar, Union, cast
 
-from dilib import di_config, specs, utils
+import dilib.config
+import dilib.specs
+import dilib.utils
+
+TC = TypeVar("TC", bound=dilib.config.Config)
 
 
-class ConfigProxy:
+class ConfigProxy(Generic[TC]):
     """Read-only helper to marshal config values."""
 
-    def __init__(self, container: Container, config: di_config.Config):
+    def __init__(self, container: Container[TC], config: dilib.config.Config):
         self.container = container
         self.config = config
 
@@ -17,42 +21,55 @@ class ConfigProxy:
         return self.container._get(self.config, key)
 
     def __getitem__(self, key: str) -> Any:
-        return utils.nested_getattr(self, key)
+        return dilib.utils.nested_getattr(self, key)
 
     def __dir__(self) -> Iterable[str]:
         return dir(self.config)
 
 
-class Container:
-    """Getter of (cached) instances."""
+class Container(Generic[TC]):
+    """Materializes and caches (if necessary) objects based on given config."""
 
-    def __init__(self, config: di_config.Config):
-        if isinstance(config, di_config.ConfigSpec):
+    def __init__(self, config: TC):
+        if isinstance(config, dilib.config.ConfigSpec):
             raise ValueError(
                 "Expected Config type, got ConfigSpec. "
                 "Please call .get() on the config."
             )
 
         self._config = config
+
+        # Once we pass a config to a container, we can no longer
+        # perturb it (as this would require updating container caches)
         self._config.freeze()
 
         self._instance_cache: Dict[Union[str, int], Any] = {}
 
-    def _process_arg(self, config: di_config.Config, arg: Any) -> Any:
-        if isinstance(arg, specs.Spec):
-            # noinspection PyProtectedMember
+    @property
+    def config(self) -> TC:
+        """More type-safe alternative to attr access."""
+        # Cast because ConfigProxy[TC] will act like TC
+        return cast(TC, ConfigProxy(self, self._config))
+
+    # noinspection PyProtectedMember
+    def _process_arg(self, config: dilib.config.Config, arg: Any) -> Any:
+        if isinstance(arg, dilib.specs.Spec):
             if arg.spec_id in config._keys:
-                # noinspection PyProtectedMember
                 config_key = config._keys[arg.spec_id]
                 result = self._get(config, config_key)
-            elif isinstance(arg, specs.Prototype):
+            elif isinstance(arg, dilib.specs._Callable):
                 # Anonymous prototype or singleton
-                result = self._materialize_spec(config, arg).instantiate()
+                result = self._materialize_callable_spec(
+                    config, arg
+                ).instantiate()
             else:
+                for child_config in config._child_configs.values():
+                    if arg.spec_id in child_config._keys:
+                        return self._process_arg(child_config, arg)
+
                 raise ValueError(f"Unrecognized arg type: {type(arg)}")
-        elif isinstance(arg, specs.AttrFuture):
-            # noinspection PyProtectedMember
-            config_key = config._keys[arg.parent_spec_id]
+        elif isinstance(arg, dilib.specs.AttrFuture):
+            config_key = config._keys[arg.root_spec_id]
             result = self._get(config, config_key)
 
             for attr in arg.attrs:
@@ -66,9 +83,10 @@ class Container:
 
         return result
 
-    def _materialize_spec(
-        self, config: di_config.Config, spec: specs.Prototype
-    ) -> specs.Prototype:
+    # noinspection PyProtectedMember
+    def _materialize_callable_spec(
+        self, config: dilib.config.Config, spec: dilib.specs._Callable
+    ) -> dilib.specs._Callable:
         """Return Spec copy with materialized args/kwargs."""
         materialized_args = [
             self._process_arg(config, arg) for arg in spec.args
@@ -90,28 +108,29 @@ class Container:
 
         return spec.copy_with(*materialized_args, **materialized_kwargs)
 
-    def _get(self, config: di_config.Config, key: str) -> Any:
+    # noinspection PyProtectedMember
+    def _get(self, config: dilib.config.Config, key: str) -> Any:
         """Get instance represented by key in given config."""
         spec = getattr(config, key)
-        if isinstance(spec, specs.Object):
+        if isinstance(spec, dilib.specs._Object):
             return spec.obj
-        elif isinstance(spec, specs.Singleton):
+        elif isinstance(spec, dilib.specs._Singleton):
             try:
                 return self._instance_cache[spec.spec_id]
             except KeyError:
                 pass
 
-            instance = self._materialize_spec(config, spec).instantiate()
+            instance = self._materialize_callable_spec(
+                config, spec
+            ).instantiate()
             self._instance_cache[spec.spec_id] = instance
             return instance
-        elif isinstance(spec, specs.Prototype):
-            spec = cast(specs.Prototype, spec)
-            return self._materialize_spec(config, spec).instantiate()
-        elif isinstance(spec, di_config.Config):
+        elif isinstance(spec, dilib.specs._Prototype):
+            return self._materialize_callable_spec(config, spec).instantiate()
+        elif isinstance(spec, dilib.config.Config):
             return ConfigProxy(self, spec)
-        elif isinstance(spec, specs.AttrFuture):
-            # noinspection PyProtectedMember
-            key = config._keys[spec.parent_spec_id]
+        elif isinstance(spec, dilib.specs.AttrFuture):
+            key = config._keys[spec.root_spec_id]
             obj = self._get(config, key)
 
             for idx, attr in enumerate(spec.attrs):
@@ -124,9 +143,12 @@ class Container:
                 f"spec_id={spec.spec_id}, attrs={spec.attrs}"
             )
         else:
-            raise ValueError(f"Unrecognized spec type: {type(spec)}")
+            raise ValueError(
+                f"Unrecognized spec type: " f"{type(spec)} with key={key!r}"
+            )
 
     def get(self, key: str, default: Optional[Any] = None) -> Any:
+        """Get materialized object aliased by key, with optional default."""
         if key in dir(self):
             return self[key]
 
@@ -140,7 +162,12 @@ class Container:
         return self._get(self._config, key)
 
     def __getitem__(self, key: str) -> Any:
-        return utils.nested_getattr(self, key)
+        return dilib.utils.nested_getattr(self, key)
 
     def __dir__(self) -> Iterable[str]:
         return dir(self._config)
+
+
+def get_container(config: TC) -> Container[TC]:
+    """More type-safe alternative to creating container (for PyCharm)."""
+    return Container(config)

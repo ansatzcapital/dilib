@@ -34,6 +34,9 @@ use_parentheses = true
 line_length = 79
 sections = ["FUTURE", "STDLIB", "THIRDPARTY", "FIRSTPARTY", "LOCALFOLDER"]
 
+[tool.mypy]
+check_untyped_defs = true
+
 [tool.pyright]
 include = ["**/*.py"]
 exclude = ["**/__pycache__", "**/.*"]

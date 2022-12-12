@@ -53,16 +53,12 @@ class Car(dilib.SingletonMixin):
         self.state = 0
 
 
-# noinspection PyTypeChecker
 class EngineConfig(dilib.Config):
-
     db_address = dilib.GlobalInput(type_=str, default="ava-db")
-    engine = DBEngine(db_address)  # type: ignore
+    engine = DBEngine(db_address)
 
 
-# noinspection PyTypeChecker
 class CarConfig(dilib.Config):
-
     engine_config = EngineConfig()
 
     seat_cls = dilib.Object(Seat)
@@ -70,22 +66,22 @@ class CarConfig(dilib.Config):
         lambda cls, n: [cls() for _ in range(n)], seat_cls, 2
     )
 
-    car = Car(seats, engine=engine_config.engine)  # type: ignore
+    car = Car(seats, engine=engine_config.engine)
 
 
 def test_basic_demo():
-    config = CarConfig().get(db_address="ava-db")
-    container = dilib.Container(config)
+    config = dilib.get_config(CarConfig, db_address="ava-db")
+    container = dilib.get_container(config)
 
-    car = container.car
+    car: Car = container.config.car
     assert isinstance(car, Car)
-    assert id(car) == id(container.car)  # Because it's a Singleton
+    assert id(car) == id(container.config.car)  # Because it's a Singleton
     assert isinstance(car.engine, DBEngine)
 
 
 def test_perturb_demo():
-    config = CarConfig().get(db_address="ava-db")
-    config.engine_config.engine = MockEngine()
-    container = dilib.Container(config)
+    config = dilib.get_config(CarConfig, db_address="ava-db")
+    config.engine_config.engine = MockEngine()  # type: ignore
+    container = dilib.get_container(config)
 
-    assert isinstance(container.car.engine, MockEngine)
+    assert isinstance(container.config.car.engine, MockEngine)

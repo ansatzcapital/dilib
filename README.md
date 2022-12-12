@@ -62,7 +62,7 @@ class EngineConfig(dilib.Config):
     adj_db_user = dilib.Prototype(lambda x: x + ".foo", x=db_user)
 
     # Objects depend on other objects via named aliases
-    engine = dilib.Singleton(DBEngine, db_addr, user=adj_db_user)
+    engine: Engine = dilib.Singleton(DBEngine, db_addr, user=adj_db_user)
     # Or equivalently, if DBEngine used dilib.SingletonMixin:
     # engine = dilib.DBEngine(db_addr, user=adj_db_user)
 
@@ -75,17 +75,17 @@ class CarConfig(dilib.Config):
 
 
 # Get instance of config (with global input value set)
-car_config = CarConfig().get(db_addr="some-other-db-addr")
+car_config: CarConfig = dilib.get_config(CarConfig, db_addr="some-other-db-addr")
 
 # Perturb here as you'd like. E.g.:
 car_config.engine_config.Engine = MockEngine()
 
 # Pass config to a container that can get and cache objs for you
-container = dilib.Container(car_config)
+container: dilib.Container[CarConfig] = dilib.get_container(car_config)
 
-assert container.engine_config.db_addr == "some-other-db-addr"
-assert isinstance(container.car, Car)
-assert container.car is container.car  # Because it's a Singleton
+assert container.config.engine_config.db_addr == "some-other-db-addr"
+assert isinstance(container.config.car, Car)
+assert container.config.car is container.car  # Because it's a Singleton
 ```
 
 Notes:
@@ -93,6 +93,68 @@ Notes:
 - For this to work, `Car` cannot make any assumptions about *what kind* of `Engine` it received.
 Different engines have different constructor params 
 but have the [same API and semantics](https://en.wikipedia.org/wiki/Liskov_substitution_principle).
+- In order to take advantage of typing (e.g., mypy, PyCharm auto-complete), use `dilib.get_config(...)`
+and `container.config`, which are type-safe alternatives. Note also how we set the `engine` config type
+to the base class `Engine`--this way, clients of the config are abstracted away from which implementation
+is currently configured. 
+
+### API Overview
+
+- `dilib.Config`: Inherit from this to specify your objects and params
+- `config = dilib.get_config(ConfigClass, **global_inputs)`: Instantiate config object
+  - Alternatively: `config = ConfigClass().get(**global_inputs)`
+- `container = dilib.get_container(config)`: Pass the config when instantiating the container
+  - Alternatively: `container = dilib.Container(config)`
+- `container.config.x_config.y_config.z`: Get the instantianted object
+  - Alternatively: `container.x_config.y_config.z`, or even `container["x_config.y_config.z"]`
+
+Specs:
+
+- `dilib.Object`: Pass-through already-instantiated object
+- `dilib.Forward`: Forward to a different config field
+- `dilib.Prototype`: Instantiate a new object at each container get, per the spec
+- `dilib.Singleton`: Instantiate and cache object, per the spec
+- `dilib.Singleton{Tuple,List,Dict}`: Special helpers to ease collections of specs. E.g.:
+
+```python
+import dataclasses
+
+import dilib
+
+
+@dataclasses.dataclass(frozen=True)
+class ValuesWrapper:
+    x: int
+    y: int
+    z: int = 3
+
+
+class CollectionsConfig(dilib.Config):
+    x: int = dilib.Object(1)
+    y: int = dilib.Object(2)
+    z: int = dilib.Object(3)
+
+    xy_tuple = dilib.SingletonTuple(x, y)
+    xy_list = dilib.SingletonList(x, y)
+    xy_dict0 = dilib.SingletonDict(x=x, y=y)
+    xy_dict1 = dilib.SingletonDict({"x": x, "y": y})
+    xy_dict2 = dilib.SingletonDict({"x": x, "y": y}, z=z)
+    
+    # You can also build a partial kwargs dict that can be re-used and combined downstream
+    partial_kwargs = dilib.SingletonDict(x=x, y=y)
+    values0 = dilib.Singleton(ValuesWrapper, __lazy_kwargs=partial_kwargs)
+    values1 = dilib.Singleton(ValuesWrapper, z=4, __lazy_kwargs=partial_kwargs)
+    
+
+config = dilib.get_config(CollectionsConfig)
+container = dilib.get_container(config)
+
+assert container.config.xy_tuple == (1, 2)
+assert container.config.xy_list == [1, 2]
+assert container.config.xy_dict0 == {"x": 1, "y": 2}
+assert container.config.xy_dict1 == {"x": 1, "y": 2}
+assert container.config.xy_dict2 == {"x": 1, "y": 2, "z": 3}
+```
 
 ## Compare with Other DI Frameworks
 
@@ -189,22 +251,4 @@ class FooConfig(dilib.Config):
     db_param = dilib.Object("some-db-addr")
     foo_factory = dilib.Singleton(FooFactory, db_param)
     foo_client = dilib.Singleton(FooClient, foo_factory=foo_factory)
-```
-
-### Typing
-
-The next design goal is to add typing to dilib, e.g.:
-
-```python
-import dilib
-
-
-class SomeConfig(dilib.Config):
-    x = dilib.Object(1)  # Should pick up x as int
-    y: Engine = dilib.Singleton(DBEngine, ...)  # Pick the base class for type
-
-
-# ...
-ctr = ...  # Container type should be dilib.Container[SomeConfig]
-x = ctr.config.x  # Type systems should pick up that x is an int
 ```
