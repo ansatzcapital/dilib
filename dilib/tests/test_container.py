@@ -118,6 +118,73 @@ def test_perturb_nested(more_type_safe: bool):
     assert config_proxy.foobar.value == 10
 
 
+class MoreComplexPerturbConfig0(dilib.Config):
+    x: int = dilib.GlobalInput(type_=int)
+    y: int = dilib.Object(2)
+
+    foo = dilib.Singleton(test_config.ValueWrapper, 100)
+
+
+class MoreComplexPerturbConfig1(dilib.Config):
+    other_config = MoreComplexPerturbConfig0()
+
+    value_obj = dilib.Singleton(test_config.ValueWrapper, other_config.x)
+
+
+class MoreComplexPerturbConfig2(dilib.Config):
+    other_config = MoreComplexPerturbConfig1()
+
+    value_obj = dilib.Singleton(
+        test_config.ValueWrapper, other_config.other_config.x
+    )
+
+
+class Doubler:
+    def __init__(self, value: int):
+        self.value = value * 2
+
+
+@pytest.mark.parametrize("more_type_safe", [True, False])
+def test_perturb_nested_more_complex_input(more_type_safe: bool):
+    config = test_config.get_config(
+        MoreComplexPerturbConfig1, more_type_safe=more_type_safe, x=100
+    )
+
+    config.value_obj = dilib.Singleton(Doubler, config.other_config.x)
+
+    _, config_proxy = get_container_objs(config, more_type_safe=more_type_safe)
+
+    assert config_proxy.value_obj.value == 200
+
+
+@pytest.mark.parametrize("more_type_safe", [True, False])
+def test_perturb_nested_more_complex_object0(more_type_safe: bool):
+    config = test_config.get_config(
+        MoreComplexPerturbConfig1, more_type_safe=more_type_safe, x=100
+    )
+
+    config.value_obj = dilib.Singleton(Doubler, config.other_config.y)
+
+    _, config_proxy = get_container_objs(config, more_type_safe=more_type_safe)
+
+    assert config_proxy.value_obj.value == 4
+
+
+@pytest.mark.parametrize("more_type_safe", [True, False])
+def test_perturb_nested_more_complex_object1(more_type_safe: bool):
+    config = test_config.get_config(
+        MoreComplexPerturbConfig2, more_type_safe=more_type_safe, x=100
+    )
+
+    config.value_obj = dilib.Singleton(
+        Doubler, config.other_config.other_config.y
+    )
+
+    _, config_proxy = get_container_objs(config, more_type_safe=more_type_safe)
+
+    assert config_proxy.value_obj.value == 4
+
+
 @pytest.mark.parametrize("more_type_safe", [True, False])
 def test_nested_keyerror(more_type_safe: bool):
     _, config_proxy = get_container_objs(

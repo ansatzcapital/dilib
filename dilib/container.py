@@ -65,12 +65,14 @@ class Container(Generic[TC]):
                 result = self._materialize_callable_spec(
                     config, arg
                 ).instantiate()
+            elif isinstance(arg, dilib.specs._Object):
+                return arg.obj
             else:
                 for child_config in config._child_configs.values():
                     if arg.spec_id in child_config._keys:
                         return self._process_arg(child_config, arg)
 
-                raise ValueError(f"Unrecognized arg type: {type(arg)}")
+                raise TypeError(f"Unrecognized arg type: {type(arg)}")
         elif isinstance(arg, dilib.specs.AttrFuture):
             config_key = config._keys[arg.root_spec_id]
             result = self._get(config, config_key)
