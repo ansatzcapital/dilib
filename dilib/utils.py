@@ -59,10 +59,15 @@ def nested_getattr(obj: Any, address: str) -> Any:
 def nested_contains(obj: Any, address: str) -> Any:
     """Check existence of last attr of obj specified by "."-separated address.
 
-    >>> import unittest.mock
-    >>> a = unittest.mock.MagicMock()
-    >>> nested_setattr(a, "b.c", {"d": 1})
-    >>> nested_contains(a, "b.c.d")
+    >>> class QuickAttrDict(dict):
+    ...     def __getattr__(self, key):
+    ...         result = self[key]
+    ...         return (
+    ...             QuickAttrDict(result) if isinstance(result, dict)
+    ...             else result
+    ...         )
+    >>> values = QuickAttrDict({"b": {"c": {"d": 1}}})
+    >>> nested_contains(values, "b.c.d")
     True
     """
     split_address = address.split(".")
