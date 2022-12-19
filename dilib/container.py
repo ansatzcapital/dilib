@@ -55,24 +55,30 @@ class Container(Generic[TC]):
         return cast(TC, ConfigProxy(self, self._config))
 
     # noinspection PyProtectedMember
+    def _process_arg_spec(
+        self, config: dilib.config.Config, arg: dilib.specs.Spec
+    ) -> Any:
+        if arg.spec_id in config._keys:
+            config_key = config._keys[arg.spec_id]
+            result = self._get(config, config_key)
+        elif isinstance(arg, dilib.specs._Callable):
+            # Anonymous prototype or singleton
+            result = self._materialize_callable_spec(config, arg).instantiate()
+        elif isinstance(arg, dilib.specs._Object):
+            return arg.obj
+        else:
+            for child_config in config._child_configs.values():
+                if arg.spec_id in child_config._keys:
+                    return self._process_arg(child_config, arg)
+
+            raise TypeError(f"Unrecognized arg type: {type(arg)}")
+
+        return result
+
+    # noinspection PyProtectedMember
     def _process_arg(self, config: dilib.config.Config, arg: Any) -> Any:
         if isinstance(arg, dilib.specs.Spec):
-            if arg.spec_id in config._keys:
-                config_key = config._keys[arg.spec_id]
-                result = self._get(config, config_key)
-            elif isinstance(arg, dilib.specs._Callable):
-                # Anonymous prototype or singleton
-                result = self._materialize_callable_spec(
-                    config, arg
-                ).instantiate()
-            elif isinstance(arg, dilib.specs._Object):
-                return arg.obj
-            else:
-                for child_config in config._child_configs.values():
-                    if arg.spec_id in child_config._keys:
-                        return self._process_arg(child_config, arg)
-
-                raise TypeError(f"Unrecognized arg type: {type(arg)}")
+            return self._process_arg_spec(config, arg)
         elif isinstance(arg, dilib.specs.AttrFuture):
             config_key = config._keys[arg.root_spec_id]
             result = self._get(config, config_key)

@@ -150,7 +150,10 @@ def test_perturb_nested_more_complex_input(more_type_safe: bool):
         MoreComplexPerturbConfig1, more_type_safe=more_type_safe, x=100
     )
 
-    config.value_obj = dilib.Singleton(Doubler, config.other_config.x)
+    config.value_obj = dilib.Singleton(  # type: ignore
+        Doubler,
+        config.other_config.x,
+    )
 
     _, config_proxy = get_container_objs(config, more_type_safe=more_type_safe)
 
@@ -163,7 +166,10 @@ def test_perturb_nested_more_complex_object0(more_type_safe: bool):
         MoreComplexPerturbConfig1, more_type_safe=more_type_safe, x=100
     )
 
-    config.value_obj = dilib.Singleton(Doubler, config.other_config.y)
+    config.value_obj = dilib.Singleton(  # type: ignore
+        Doubler,
+        config.other_config.y,
+    )
 
     _, config_proxy = get_container_objs(config, more_type_safe=more_type_safe)
 
@@ -176,7 +182,7 @@ def test_perturb_nested_more_complex_object1(more_type_safe: bool):
         MoreComplexPerturbConfig2, more_type_safe=more_type_safe, x=100
     )
 
-    config.value_obj = dilib.Singleton(
+    config.value_obj = dilib.Singleton(  # type: ignore
         Doubler, config.other_config.other_config.y
     )
 
