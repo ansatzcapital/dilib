@@ -317,3 +317,20 @@ def test_typing():
     assert x == 1
     y: int = container.config.basic_config.y
     assert y == 2
+
+
+@pytest.mark.parametrize("more_type_safe", [True, False])
+def test_contains(more_type_safe: bool):
+    container, config_proxy = get_container_objs(
+        test_config.GrandParentConfig, more_type_safe=more_type_safe
+    )
+
+    for exist_key in ["parent_config1", "parent_config1.basic_config.x"]:
+        assert exist_key in container
+        assert exist_key in config_proxy
+        assert exist_key in container._config
+
+    for missing_key in ["foo_bar", "foo_bar.x", "parent_config1.foo_bar"]:
+        assert missing_key not in container
+        assert missing_key not in config_proxy
+        assert missing_key not in container._config

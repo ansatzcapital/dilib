@@ -23,6 +23,9 @@ class ConfigProxy(Generic[TC]):
     def __getitem__(self, key: str) -> Any:
         return dilib.utils.nested_getattr(self, key)
 
+    def __contains__(self, key: str) -> bool:
+        return key in self.config
+
     def __dir__(self) -> Iterable[str]:
         return dir(self.config)
 
@@ -163,6 +166,9 @@ class Container(Generic[TC]):
 
     def __getitem__(self, key: str) -> Any:
         return dilib.utils.nested_getattr(self, key)
+
+    def __contains__(self, key: str) -> bool:
+        return dilib.utils.nested_contains(self._config, key)
 
     def __dir__(self) -> Iterable[str]:
         return dir(self._config)

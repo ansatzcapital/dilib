@@ -56,6 +56,25 @@ def nested_getattr(obj: Any, address: str) -> Any:
     return obj
 
 
+def nested_contains(obj: Any, address: str) -> Any:
+    """Check existence of last attr of obj specified by "."-separated address.
+
+    >>> import unittest.mock
+    >>> a = unittest.mock.MagicMock()
+    >>> nested_setattr(a, "b.c", {"d": 1})
+    >>> nested_contains(a, "b.c.d")
+    True
+    """
+    split_address = address.split(".")
+    last_address_part = split_address[-1]
+    for address_part in split_address[:-1]:
+        if address_part in obj:
+            obj = getattr(obj, address_part)
+        else:
+            return False
+    return last_address_part in obj
+
+
 def nested_setattr(obj: Any, address: str, value: Any):
     """Set last attr of obj specified by "."-separated address to given value.
 
