@@ -69,6 +69,16 @@ def nested_contains(obj: Any, address: str) -> Any:
     >>> values = QuickAttrDict({"b": {"c": {"d": 1}}})
     >>> nested_contains(values, "b.c.d")
     True
+    >>> nested_contains(values, "b.c")
+    True
+    >>> nested_contains(values, "b")
+    True
+    >>> nested_contains(values, "b.c.e")
+    False
+    >>> nested_contains(values, "b.e")
+    False
+    >>> nested_contains(values, "e")
+    False
     """
     split_address = address.split(".")
     last_address_part = split_address[-1]
