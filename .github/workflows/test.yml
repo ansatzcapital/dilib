@@ -43,7 +43,7 @@ jobs:
         run: tox -m ${{ matrix.python-version }}
         if: ${{ ! (matrix.platform == 'windows-latest' && matrix.python-version == '3.8') }}
       - name: Test with tox (Windows, py3.8)
-        # Skip pyright on Windows for now
+        # TODO: Skip pyright on Windows for now, but investigate later
         run: tox -e black,docformatter,flake8,isort,mypy,py38
         if: ${{ matrix.platform == 'windows-latest' && matrix.python-version == '3.8' }}
 
