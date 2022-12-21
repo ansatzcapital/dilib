@@ -56,7 +56,7 @@ def nested_getattr(obj: Any, address: str) -> Any:
     return obj
 
 
-def nested_contains(obj: Any, address: str) -> Any:
+def nested_contains(obj: Any, address: str) -> bool:
     """Check existence of last attr of obj specified by "."-separated address.
 
     >>> class QuickAttrDict(dict):
