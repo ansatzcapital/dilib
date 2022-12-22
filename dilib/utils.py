@@ -56,6 +56,40 @@ def nested_getattr(obj: Any, address: str) -> Any:
     return obj
 
 
+def nested_contains(obj: Any, address: str) -> bool:
+    """Check existence of last attr of obj specified by "."-separated address.
+
+    >>> class QuickAttrDict(dict):
+    ...     def __getattr__(self, key):
+    ...         result = self[key]
+    ...         return (
+    ...             QuickAttrDict(result) if isinstance(result, dict)
+    ...             else result
+    ...         )
+    >>> values = QuickAttrDict({"b": {"c": {"d": 1}}})
+    >>> nested_contains(values, "b.c.d")
+    True
+    >>> nested_contains(values, "b.c")
+    True
+    >>> nested_contains(values, "b")
+    True
+    >>> nested_contains(values, "b.c.e")
+    False
+    >>> nested_contains(values, "b.e")
+    False
+    >>> nested_contains(values, "e")
+    False
+    """
+    split_address = address.split(".")
+    last_address_part = split_address[-1]
+    for address_part in split_address[:-1]:
+        if address_part in obj:
+            obj = getattr(obj, address_part)
+        else:
+            return False
+    return last_address_part in obj
+
+
 def nested_setattr(obj: Any, address: str, value: Any):
     """Set last attr of obj specified by "."-separated address to given value.
 

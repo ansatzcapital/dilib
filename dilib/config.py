@@ -235,6 +235,12 @@ class Config:
     def __getitem__(self, key: str) -> Any:
         return dilib.utils.nested_getattr(self, key)
 
+    def __contains__(self, key: str) -> Any:
+        if "." in key:
+            return dilib.utils.nested_contains(self, key)
+        else:
+            return key in dir(self)
+
     def __setattr__(self, key: str, value: Any):
         if (
             key.startswith("__")
