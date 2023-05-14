@@ -1,3 +1,4 @@
+# flake8: noqa
 from dilib.config import Config as Config
 from dilib.config import get_config as get_config
 from dilib.container import ConfigProxy as ConfigProxy
