@@ -96,7 +96,7 @@ class EngineConfig(dilib.Config):
 class CarConfig(dilib.Config):
     # Configs depend on other configs via types. 
     # Here, CarConfig depends on EngineConfig.
-    engine_config = EngineConfig(foo_prefix="baz")
+    engine_config = EngineConfig(token_prefix="baz")
 
     car = dilib.Singleton(Car, engine_config.engine)
 
@@ -107,7 +107,7 @@ car_config: CarConfig = dilib.get_config(
 )
 
 # Perturb here as you'd like. E.g.:
-car_config.engine_config.Engine = dilib.Singleton(MockEngine)
+car_config.engine_config.engine = dilib.Singleton(MockEngine)
 
 # Pass config to a container
 container: dilib.Container[CarConfig] = dilib.get_container(car_config)
@@ -287,31 +287,39 @@ If you need to configure objects dynamically
 set config keys based on another value), consider a factory pattern like:
 
 ```python
+import dataclasses
+
 import dilib
 
 
+# Object that needs to be created dynamically
+@dataclasses.dataclass(frozen=True)
 class Foo:
-    @property
-    def value(self) -> int:
-        raise NotImplementedError
+    value: int
 
 
+# Factory that takes static params via constructor injection and dynamic params via method injection
+@dataclasses.dataclass(frozen=True)
 class FooFactory:
-    def get_foo(self) -> Foo:
+    db_host: str
+    alpha: int
+    beta: int
+
+    def get_foo(self, gamma: int) -> Foo:
         raise NotImplementedError
 
 
+# Object that needs Foo object
+@dataclasses.dataclass(frozen=True)
 class FooClient:
-    def __init__(self, foo_factory: FooFactory):
-        self.foo_factory = foo_factory
-        
-    def get_foo_value(self) -> int:
-        foo = self.foo_factory.get_foo()
-        return foo.value
+    foo_factory: FooFactory
+
+    def process_foo_value(self) -> int:
+        return 100 + self.foo_factory.get_foo(gamma=3).value
 
 
 class FooConfig(dilib.Config):
-    db_param = dilib.Object("some-db-addr")
-    foo_factory = dilib.Singleton(FooFactory, db_param)
+    db_host = dilib.GlobalInput(type_=str, default="some-db-addr")
+    foo_factory = dilib.Singleton(FooFactory, db_host=db_host, alpha=1, beta=2)
     foo_client = dilib.Singleton(FooClient, foo_factory=foo_factory)
 ```
