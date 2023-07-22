@@ -1,5 +1,7 @@
 # mypy: disable-error-code="comparison-overlap"
-from typing import Any, Tuple, Type, TypeVar, Union, cast
+from __future__ import annotations
+
+from typing import Any, TypeVar, cast
 
 import pytest
 
@@ -10,8 +12,8 @@ TC = TypeVar("TC", bound=dilib.Config)
 
 
 def get_container_objs(
-    config: Union[TC, Type[TC]], more_type_safe: bool, **global_inputs: Any
-) -> Tuple[dilib.Container[TC], TC]:
+    config: TC | type[TC], more_type_safe: bool, **global_inputs: Any
+) -> tuple[dilib.Container[TC], TC]:
     if more_type_safe:
         if not isinstance(config, dilib.Config):
             config = dilib.get_config(config, **global_inputs)
@@ -141,7 +143,7 @@ class MoreComplexPerturbConfig2(dilib.Config):
 
 
 class Doubler:
-    def __init__(self, value: int):
+    def __init__(self, value: int) -> None:
         self.value = value * 2
 
 
@@ -200,7 +202,7 @@ def test_nested_keyerror(more_type_safe: bool) -> None:
 
     with pytest.raises(KeyError):
         try:
-            config_proxy.foobar
+            _ = config_proxy.foobar
         except KeyError as exc:
             assert str(exc) == (
                 "\"<class 'dilib.tests.test_config.ParentConfig0'>: "

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, List
+from typing import Any
 
 import dilib
 
@@ -38,7 +38,7 @@ class MockEngine(Engine, dilib.SingletonMixin):
 
 
 class Car(dilib.SingletonMixin):
-    def __init__(self, seats: List[Seat], engine: Engine) -> None:
+    def __init__(self, seats: list[Seat], engine: Engine) -> None:
         self.seats = seats
         self.engine = engine
 

@@ -1,4 +1,6 @@
-from typing import Dict, Sequence, Tuple, TypeVar
+from __future__ import annotations
+
+from typing import Sequence, TypeVar
 
 import dilib
 
@@ -48,11 +50,11 @@ def test_typing() -> None:
 
     _10: Sequence = dilib.SingletonList(spec0, spec0)  # noqa: F841
     _11: Sequence[int] = dilib.SingletonList(spec0, spec0)  # noqa: F841
-    _12: Tuple = dilib.SingletonTuple(spec2, spec2)  # noqa: F841
+    _12: tuple = dilib.SingletonTuple(spec2, spec2)  # noqa: F841
     # TODO: Support more narrow Tuple types
     # _13: Tuple[str, str] = dilib.SingletonTuple(spec2, spec2)  # noqa: F841
-    _14: Dict = dilib.SingletonDict(a=spec0, b=spec1)  # noqa: F841
-    _15: Dict[str, int] = dilib.SingletonDict(a=spec0, b=spec1)  # noqa: F841
+    _14: dict = dilib.SingletonDict(a=spec0, b=spec1)  # noqa: F841
+    _15: dict[str, int] = dilib.SingletonDict(a=spec0, b=spec1)  # noqa: F841
 
     # Would cause mypy error:
     # _16: str = dilib.Singleton(add_ints, 1, "abc")  # noqa: F841

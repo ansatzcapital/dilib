@@ -1,5 +1,7 @@
+from __future__ import annotations
+
 import datetime
-from typing import Any, Optional, Type
+from typing import Any
 
 import dilib.errors
 
@@ -16,7 +18,7 @@ PRIMITIVE_TYPES = (
 
 
 def check_type(
-    value: Any, type_: Optional[Type] = None, desc: Optional[str] = None
+    value: Any, type_: type | None = None, desc: str | None = None
 ) -> None:
     """Check that value is of given type and raise error if not.
 

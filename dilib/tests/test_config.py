@@ -1,7 +1,9 @@
 # mypy: disable-error-code="comparison-overlap"
+from __future__ import annotations
+
 import dataclasses
 import types
-from typing import Any, Dict, List, Tuple, Type, TypeVar
+from typing import Any, TypeVar
 
 import pytest
 
@@ -12,7 +14,7 @@ TC = TypeVar("TC", bound=dilib.Config)
 
 
 def get_config(
-    config_cls: Type[TC], more_type_safe: bool, **global_inputs: Any
+    config_cls: type[TC], more_type_safe: bool, **global_inputs: Any
 ) -> TC:
     if more_type_safe:
         return dilib.get_config(config_cls, **global_inputs)
@@ -236,13 +238,13 @@ class CollectionConfig(dilib.Config):
     z = dilib.Object(3)
 
     # TODO: Support more narrow Tuple types
-    foo_tuple: Tuple = dilib.SingletonTuple(x, y)
-    foo_list: List[int] = dilib.SingletonList(x, y)
-    foo_dict_kwargs: Dict[str, int] = dilib.SingletonDict(x=x, y=y)
-    foo_dict_values0: Dict[int, int] = dilib.SingletonDict({1: x, 2: y})
+    foo_tuple: tuple = dilib.SingletonTuple(x, y)
+    foo_list: list[int] = dilib.SingletonList(x, y)
+    foo_dict_kwargs: dict[str, int] = dilib.SingletonDict(x=x, y=y)
+    foo_dict_values0: dict[int, int] = dilib.SingletonDict({1: x, 2: y})
     # TODO: Re-enable when min python version is 3.8
     # foo_dict_values1: Dict[str, int] = dilib.SingletonDict(values=x)
-    foo_dict_values2: Dict[int, int] = dilib.SingletonDict(
+    foo_dict_values2: dict[int, int] = dilib.SingletonDict(
         {"x": x, "y": y}, z=z
     )
 

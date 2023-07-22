@@ -60,10 +60,10 @@ line-length = 79
 select = [
     # https://beta.ruff.rs/docs/rules/#pyflakes-f
     "F",
-     # https://beta.ruff.rs/docs/rules/#pycodestyle-e-w
+    # https://beta.ruff.rs/docs/rules/#pycodestyle-e-w
     "E",
     "W",
-#    # https://beta.ruff.rs/docs/rules/#isort-i
+    # https://beta.ruff.rs/docs/rules/#isort-i
     "I",
     # https://beta.ruff.rs/docs/rules/#mccabe-c90
     "C90",
@@ -109,10 +109,6 @@ dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
 force-sort-within-sections = true
 section-order = ["future", "standard-library", "third-party", "first-party", "local-folder"]
 single-line-exclusions= ["collections.abc", "typing", "typing_extensions"]
-#multi_line_output = 3
-#include_trailing_comma = true
-#force_grid_wrap = 0
-#use_parentheses = true
 
 [tool.ruff.mccabe]
 max-complexity = 10
