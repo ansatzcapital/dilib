@@ -37,10 +37,12 @@ else:
 
 
 def is_isolated_venv(session: nox.Session) -> bool:
-    """Indicates that the user has set --no-venv.
+    """Indicates that the session is being run in an isolated env.
 
-    This means the user is using their development venv,
-    and nox will (correctly) refuse to install packages unless forced to.
+    I.e., the user has not set `--no-venv`.
+
+    If the user uses their development (non-isolated) venv,
+    then nox will (correctly) refuse to install packages, unless forced to.
     """
     return not isinstance(session.virtualenv, nox.virtualenv.PassthroughEnv)
 
