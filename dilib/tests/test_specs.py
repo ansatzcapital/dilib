@@ -11,7 +11,7 @@ class BaseMultiplier:
 
 
 class SimpleMultiplier(BaseMultiplier):
-    def __init__(self, x: int, y: int = 2):
+    def __init__(self, x: int, y: int = 2) -> None:
         self.x = x
         self.y = y
 
@@ -28,7 +28,7 @@ def add_ints(x: int, y: int) -> int:
     return x + y
 
 
-def test_typing():
+def test_typing() -> None:
     spec0: int = dilib.Object(1)
     spec1: int = dilib.Object(2)
     spec2: str = dilib.Object("abc")

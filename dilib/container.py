@@ -165,7 +165,7 @@ class Container(Generic[TC]):
 
         return default
 
-    def clear(self):
+    def clear(self) -> None:
         """Clear instance cache."""
         self._instance_cache.clear()
 

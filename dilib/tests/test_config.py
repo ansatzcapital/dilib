@@ -1,3 +1,4 @@
+# mypy: disable-error-code="comparison-overlap"
 import dataclasses
 import types
 from typing import Any, Dict, List, Tuple, Type, TypeVar
@@ -11,12 +12,12 @@ TC = TypeVar("TC", bound=dilib.Config)
 
 
 def get_config(
-    config_cls: Type[TC], more_type_safe: bool, **global_inputs
+    config_cls: Type[TC], more_type_safe: bool, **global_inputs: Any
 ) -> TC:
     if more_type_safe:
         return dilib.get_config(config_cls, **global_inputs)
     else:
-        return config_cls().get(**global_inputs)
+        return config_cls().get(**global_inputs)  # type: ignore[no-any-return]
 
 
 @dataclasses.dataclass(frozen=True)
@@ -49,7 +50,7 @@ class BasicConfig(dilib.Config):
     bar = PrototypeValueWrapper(value=y)
 
 
-def test_config_spec():
+def test_config_spec() -> None:
     # No inputs
     assert BasicConfig() == BasicConfig()
     assert hash(BasicConfig()) == hash(BasicConfig())
@@ -63,7 +64,7 @@ def test_config_spec():
 
 
 @pytest.mark.parametrize("more_type_safe", [True, False])
-def test_basic(more_type_safe: bool):
+def test_basic(more_type_safe: bool) -> None:
     config = get_config(BasicConfig, more_type_safe=more_type_safe)
 
     assert config._get_spec("x").obj == 1
@@ -73,7 +74,7 @@ def test_basic(more_type_safe: bool):
 
 
 @pytest.mark.parametrize("more_type_safe", [True, False])
-def test_perturb_basic(more_type_safe: bool):
+def test_perturb_basic(more_type_safe: bool) -> None:
     config0: BasicConfig = get_config(
         BasicConfig, more_type_safe=more_type_safe
     )
@@ -91,7 +92,7 @@ def test_perturb_basic(more_type_safe: bool):
 
 
 @pytest.mark.parametrize("more_type_safe", [True, False])
-def test_perturb_after_freeze(more_type_safe: bool):
+def test_perturb_after_freeze(more_type_safe: bool) -> None:
     config = get_config(BasicConfig, more_type_safe=more_type_safe)
 
     config.freeze()
@@ -100,7 +101,7 @@ def test_perturb_after_freeze(more_type_safe: bool):
 
 
 @pytest.mark.parametrize("more_type_safe", [True, False])
-def test_add_key_after_load(more_type_safe: bool):
+def test_add_key_after_load(more_type_safe: bool) -> None:
     config = get_config(BasicConfig, more_type_safe=more_type_safe)
 
     with pytest.raises(dilib.NewKeyConfigError):
@@ -138,7 +139,7 @@ class ErrorGrandParentConfig(dilib.Config):
 
 
 @pytest.mark.parametrize("more_type_safe", [True, False])
-def test_dir(more_type_safe: bool):
+def test_dir(more_type_safe: bool) -> None:
     config = get_config(GrandParentConfig, more_type_safe=more_type_safe)
 
     assert dir(config) == [
@@ -151,7 +152,7 @@ def test_dir(more_type_safe: bool):
 
 
 @pytest.mark.parametrize("more_type_safe", [True, False])
-def test_nested_config(more_type_safe: bool):
+def test_nested_config(more_type_safe: bool) -> None:
     config = get_config(GrandParentConfig, more_type_safe=more_type_safe)
 
     assert id(config.parent_config0.basic_config) == id(
@@ -160,7 +161,7 @@ def test_nested_config(more_type_safe: bool):
 
 
 @pytest.mark.parametrize("more_type_safe", [True, False])
-def test_perturb_nested_config_attrs(more_type_safe: bool):
+def test_perturb_nested_config_attrs(more_type_safe: bool) -> None:
     config = get_config(GrandParentConfig, more_type_safe=more_type_safe)
 
     config.some_str0 = "hello"
@@ -173,7 +174,7 @@ def test_perturb_nested_config_attrs(more_type_safe: bool):
 
 
 @pytest.mark.parametrize("more_type_safe", [True, False])
-def test_perturb_nested_config_strs(more_type_safe: bool):
+def test_perturb_nested_config_strs(more_type_safe: bool) -> None:
     config = get_config(GrandParentConfig, more_type_safe=more_type_safe)
 
     config["some_str0"] = "hello"
@@ -186,7 +187,7 @@ def test_perturb_nested_config_strs(more_type_safe: bool):
 
 
 @pytest.mark.parametrize("more_type_safe", [True, False])
-def test_perturb_nested_child_config(more_type_safe: bool):
+def test_perturb_nested_child_config(more_type_safe: bool) -> None:
     config = get_config(GrandParentConfig, more_type_safe=more_type_safe)
 
     with pytest.raises(dilib.SetChildConfigError):
@@ -212,7 +213,7 @@ class BadInputConfig(dilib.Config):
 
 
 @pytest.mark.parametrize("more_type_safe", [True, False])
-def test_input_config(more_type_safe: bool):
+def test_input_config(more_type_safe: bool) -> None:
     with pytest.raises(dilib.InputConfigError):
         InputConfig1().get()
 
@@ -297,7 +298,7 @@ class PartialKwargsOtherConfig(dilib.Config):
     )
 
 
-def test_extra_global_inputs():
+def test_extra_global_inputs() -> None:
     with pytest.raises(dilib.InputConfigError):
         try:
             InputConfig1().get(name="testing", foobar=123)
@@ -313,7 +314,7 @@ class InputConfigWithCollision(dilib.Config):
     name = dilib.GlobalInput(str)
 
 
-def test_global_input_collisions():
+def test_global_input_collisions() -> None:
     with pytest.raises(dilib.InputConfigError):
         try:
             InputConfigWithCollision().get(name="testing")
@@ -322,7 +323,7 @@ def test_global_input_collisions():
             raise
 
 
-def test_typing():
+def test_typing() -> None:
     # Would trigger mypy error:
     # cfg0: ParentConfig1 = dilib.get_config(ParentConfig0)
 

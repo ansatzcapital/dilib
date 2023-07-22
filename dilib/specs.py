@@ -1,3 +1,7 @@
+"""dilib specs.
+
+NB: The dilib.{Object,Singleton,...} functions follow the same pattern as dataclasses.field() vs dataclasses.Field:
+in order for typing to work for the user, we have dummy functions that mimic expected typing behavior."""
 from __future__ import annotations
 
 from typing import (
@@ -23,7 +27,7 @@ P = ParamSpec("P")
 T = TypeVar("T")
 
 
-def instantiate(cls: Type[T], *args, **kwargs) -> T:
+def instantiate(cls: Type[T], *args: Any, **kwargs: Any) -> T:
     """Instantiate obj from Spec parts."""
     try:
         if issubclass(
@@ -32,7 +36,7 @@ def instantiate(cls: Type[T], *args, **kwargs) -> T:
         ):
             obj = cls.__new__(cls, _materialize=True)
             obj.__init__(*args, **kwargs)
-            return obj
+            return cast(T, obj)
 
         return cls(*args, **kwargs)
     except TypeError as exc:
@@ -42,7 +46,7 @@ def instantiate(cls: Type[T], *args, **kwargs) -> T:
 class AttrFuture:
     """Future representing attr access on a Spec by its spec id."""
 
-    def __init__(self, root_spec_id: SpecID, attrs: List[str]):
+    def __init__(self, root_spec_id: SpecID, attrs: List[str]) -> None:
         self.root_spec_id = root_spec_id
         self.attrs = attrs
 
@@ -62,7 +66,7 @@ class Spec(Generic[T]):
         return AttrFuture(self.spec_id, [attr])
 
     # For mypy
-    def __call__(self, *args, **kwargs) -> Any:
+    def __call__(self, *args: Any, **kwargs: Any) -> Any:
         return None
 
     @classmethod
@@ -77,7 +81,7 @@ class Spec(Generic[T]):
 class _Object(Spec[T]):
     """Represents fully-instantiated object to pass through."""
 
-    def __init__(self, obj: T, spec_id: Optional[SpecID] = None):
+    def __init__(self, obj: T, spec_id: Optional[SpecID] = None) -> None:
         super().__init__(spec_id=spec_id)
         self.obj = obj
 
@@ -146,9 +150,9 @@ class _Callable(Spec[T]):
     def __init__(
         self,
         func_or_type: Callable[..., T],
-        *args,
-        **kwargs,
-    ):
+        *args: Any,
+        **kwargs: Any,
+    ) -> None:
         super().__init__()
         self.func_or_type = func_or_type
         self.args = args
@@ -164,7 +168,7 @@ class _Callable(Spec[T]):
             # Non-type callable (e.g., function, functor)
             return self.func_or_type(*self.args, **self.kwargs)
 
-    def copy_with(self, *args, **kwargs) -> _Callable:
+    def copy_with(self, *args: Any, **kwargs: Any) -> _Callable:
         """Make a copy with replaced args.
 
         Used to replace arg specs with materialized args.
@@ -189,7 +193,7 @@ def _identity(obj: T) -> T:
     return obj
 
 
-def _union_dict_and_kwargs(values: Dict, **kwargs) -> Dict:
+def _union_dict_and_kwargs(values: Dict, **kwargs: Any) -> Dict:
     new_values = values.copy()
     new_values.update(**kwargs)
     return new_values
@@ -216,14 +220,14 @@ def Singleton(
 
 
 # noinspection PyPep8Naming
-def SingletonTuple(*args) -> Tuple:
+def SingletonTuple(*args: Any) -> Tuple:
     """Spec to create tuple with args and caching per config field."""
     # Cast because the return type will act like a TT
     return cast(Tuple, _Singleton(tuple, args))
 
 
 # noinspection PyPep8Naming
-def SingletonList(*args) -> List:
+def SingletonList(*args: Any) -> List:
     """Spec to create list with args and caching per config field."""
     # Cast because the return type will act like a TL
     return cast(List, _Singleton(list, args))
@@ -236,7 +240,7 @@ def SingletonList(*args) -> List:
 # noinspection PyPep8Naming
 def SingletonDict(
     values: Dict = MISSING_DICT,  # noqa
-    **kwargs,
+    **kwargs: Any,
 ) -> Dict:
     """Spec to create dict with args and caching per config field.
 
@@ -270,7 +274,7 @@ class PrototypeMixin:
     Equivalent to dilib.Prototype(cls, ...).
     """
 
-    def __new__(cls: Type, *args, _materialize: bool = False, **kwargs):
+    def __new__(cls: Type, *args: Any, _materialize: bool = False, **kwargs: Any) -> Any:
         if _materialize:
             # noinspection PyTypeChecker
             return super().__new__(cls)
@@ -284,7 +288,7 @@ class SingletonMixin:
     Equivalent to dilib.Singleton(cls, ...).
     """
 
-    def __new__(cls: Type, *args, _materialize: bool = False, **kwargs):
+    def __new__(cls: Type, *args: Any, _materialize: bool = False, **kwargs: Any) -> Any:
         if _materialize:
             # noinspection PyTypeChecker
             return super().__new__(cls)
