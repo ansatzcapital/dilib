@@ -76,10 +76,17 @@ select = [
     "UP",
     # https://beta.ruff.rs/docs/rules/#flake8-annotations-ann
     "ANN",
+    # https://beta.ruff.rs/docs/rules/#flake8-blind-except-ble
+    "BLE",
     # https://beta.ruff.rs/docs/rules/#flake8-bugbear-b
     "B",
+    # https://beta.ruff.rs/docs/rules/#flake8-builtins-a
+    "A",
 ]
-ignore = ["D100", "D101", "D102", "D103", "D104", "D105", "D107", "D417", "ANN101", "ANN102", "ANN401"]
+ignore = [
+    "D100", "D101", "D102", "D103", "D104", "D105", "D107", "D417",
+    "ANN101", "ANN102", "ANN401",
+]
 
 # Exclude a variety of commonly ignored directories.
 exclude = [
@@ -113,7 +120,9 @@ max-complexity = 10
 
 [tool.ruff.isort]
 force-sort-within-sections = true
-section-order = ["future", "standard-library", "third-party", "first-party", "local-folder"]
+section-order = [
+    "future", "standard-library", "third-party", "first-party", "local-folder"
+]
 single-line-exclusions = ["collections.abc", "typing", "typing_extensions"]
 
 [tool.ruff.pydocstyle]
