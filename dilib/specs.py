@@ -283,7 +283,7 @@ class PrototypeMixin:
     ) -> Any:
         if _materialize:
             # noinspection PyTypeChecker
-            return super().__new__(cls)
+            return super().__new__(cls)  # type: ignore[misc]
         else:
             return Prototype(cls, *args, **kwargs)
 
@@ -299,6 +299,6 @@ class SingletonMixin:
     ) -> Any:
         if _materialize:
             # noinspection PyTypeChecker
-            return super().__new__(cls)
+            return super().__new__(cls)  # type: ignore[misc]
         else:
             return Singleton(cls, *args, **kwargs)
