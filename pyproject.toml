@@ -15,6 +15,7 @@ exclude = '''
         | \.git
         | \.hg
         | \.mypy_cache
+        | \.nox
         | \.tox
         | \.venv
         | _build
@@ -63,12 +64,14 @@ select = [
     # https://beta.ruff.rs/docs/rules/#pycodestyle-e-w
     "E",
     "W",
-    # https://beta.ruff.rs/docs/rules/#isort-i
-    "I",
     # https://beta.ruff.rs/docs/rules/#mccabe-c90
     "C90",
+    # https://beta.ruff.rs/docs/rules/#isort-i
+    "I",
     # https://beta.ruff.rs/docs/rules/#pep8-naming-n
     "N",
+    # https://beta.ruff.rs/docs/rules/#pydocstyle-d
+    "D",
     # https://beta.ruff.rs/docs/rules/#pyupgrade-up
     "UP",
     # https://beta.ruff.rs/docs/rules/#flake8-annotations-ann
@@ -76,7 +79,7 @@ select = [
     # https://beta.ruff.rs/docs/rules/#flake8-bugbear-b
     "B",
 ]
-ignore = ["I001", "ANN002", "ANN003", "ANN101", "ANN102", "ANN401"]
+ignore = ["D100", "D101", "D102", "D103", "D104", "D105", "D107", "D417", "ANN101", "ANN102", "ANN401"]
 
 # Exclude a variety of commonly ignored directories.
 exclude = [
@@ -105,10 +108,13 @@ exclude = [
 # Allow unused variables when underscore-prefixed.
 dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
 
+[tool.ruff.mccabe]
+max-complexity = 10
+
 [tool.ruff.isort]
 force-sort-within-sections = true
 section-order = ["future", "standard-library", "third-party", "first-party", "local-folder"]
-single-line-exclusions= ["collections.abc", "typing", "typing_extensions"]
+single-line-exclusions = ["collections.abc", "typing", "typing_extensions"]
 
-[tool.ruff.mccabe]
-max-complexity = 10
+[tool.ruff.pydocstyle]
+convention = "google"

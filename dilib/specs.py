@@ -3,7 +3,8 @@
 NB: The dilib.{Object,Singleton,...} functions follow the same
 pattern as dataclasses.field() vs dataclasses.Field:
 in order for typing to work for the user, we have dummy functions
-that mimic expected typing behavior."""
+that mimic expected typing behavior.
+"""
 from __future__ import annotations
 
 from typing import (
