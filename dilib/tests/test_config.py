@@ -285,7 +285,7 @@ class PartialKwargsConfig(dilib.Config):
     values = dilib.Singleton(  # type: ignore[call-arg]
         ValuesWrapper,
         z=x,
-        __lazy_kwargs=partial_kwargs,
+        __lazy_kwargs=partial_kwargs,  # pyright: ignore
     )
 
 
@@ -296,7 +296,7 @@ class PartialKwargsOtherConfig(dilib.Config):
     values = dilib.Singleton(  # type: ignore[call-arg]
         ValuesWrapper,
         z=z,
-        __lazy_kwargs=partial_kwargs_config.partial_kwargs,
+        __lazy_kwargs=partial_kwargs_config.partial_kwargs,  # pyright: ignore
     )
 
 
