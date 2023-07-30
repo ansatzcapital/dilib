@@ -10,7 +10,7 @@ permissions:
   contents: read
 
 jobs:
-  # Run tests, linters, and typecheckers via nox
+  # Run tests, linters, and checkers via nox
   test:
     runs-on: ${{ matrix.platform }}
 
