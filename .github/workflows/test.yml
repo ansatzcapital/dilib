@@ -10,7 +10,7 @@ permissions:
   contents: read
 
 jobs:
-  # Run pytest and linters via nox
+  # Run pytest, integration tests, linters, and typecheckers via nox
   test:
     runs-on: ${{ matrix.platform }}
 
@@ -28,9 +28,9 @@ jobs:
       - uses: actions/checkout@v3
         if: ${{ ! startsWith(matrix.python-version, 'pypy-') }}
       - uses: actions/checkout@v1
-        if: ${{ startsWith(matrix.python-version, 'pypy-') }}
         # Using actions/checkout@v2 or later with pypy causes an error
         # (see https://foss.heptapod.net/pypy/pypy/-/issues/3640)
+        if: ${{ startsWith(matrix.python-version, 'pypy-') }}
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v4
         with:
@@ -41,6 +41,11 @@ jobs:
           python -m pip install nox
       - name: Test with nox
         run: nox
+        # Py3.7 versions of packages yield different results for type checkers
+        if: ${{ matrix.python-version != '3.7' }}
+      - name: Test with nox (py3.7)
+        run: nox -s black pytest ruff
+        if: ${{ matrix.python-version == '3.7' }}
 
   # Test building and publishing
   # See:
