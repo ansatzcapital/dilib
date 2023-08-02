@@ -30,7 +30,7 @@ exclude = '''
 '''
 
 [tool.mypy]
-# See https://careers.wolt.com/en/blog/tech/professional-grade-mypy-configuration
+# Adapted from https://careers.wolt.com/en/blog/tech/professional-grade-mypy-configuration
 # and https://justincaustin.com/blog/mypy-tips-and-tricks/
 disallow_untyped_defs = true
 check_untyped_defs = true
@@ -44,7 +44,7 @@ disallow_untyped_calls = true
 disallow_untyped_decorators = true
 follow_imports = "normal"
 ignore_missing_imports = true
-no_implicit_reexport = true
+#no_implicit_reexport = true
 #show_error_context = true
 strict_equality = true
 strict_optional = true
