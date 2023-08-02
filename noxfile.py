@@ -10,6 +10,10 @@ By default, nox will set up venvs for each session. To use your current
 env instead, add `--no-venv` to any command:
     nox --no-venv
 
+By default, nox will recreate venvs for each session. To reuse your existing
+env instead, add `--reuse`/`-r` to any command:
+    nox --reuse
+
 To run all static linters and checkers:
     nox -t static
 
