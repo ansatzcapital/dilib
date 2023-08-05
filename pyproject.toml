@@ -44,6 +44,7 @@ disallow_untyped_calls = true
 disallow_untyped_decorators = true
 follow_imports = "normal"
 ignore_missing_imports = true
+# Many third-party libraries don't explicitly export public API
 #no_implicit_reexport = true
 #show_error_context = true
 strict_equality = true
@@ -55,6 +56,8 @@ include = ["**/*.py"]
 exclude = ["**/__pycache__", "**/.*"]
 # To enable strict mode:
 #strict = ["**/*.py"]
+# Many third-party libraries don't explicitly export public API
+reportPrivateImportUsage = "none"
 
 [tool.ruff]
 target-version = "py37"
