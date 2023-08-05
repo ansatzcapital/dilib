@@ -1,4 +1,7 @@
-from typing import Tuple, Type, TypeVar, Union, cast
+# mypy: disable-error-code="comparison-overlap"
+from __future__ import annotations
+
+from typing import Any, TypeVar, cast
 
 import pytest
 
@@ -9,11 +12,11 @@ TC = TypeVar("TC", bound=dilib.Config)
 
 
 def get_container_objs(
-    config: Union[TC, Type[TC]], more_type_safe: bool, **global_inputs
-) -> Tuple[dilib.Container[TC], TC]:
+    config: TC | type[TC], more_type_safe: bool, **global_inputs: Any
+) -> tuple[dilib.Container[TC], TC]:
     if more_type_safe:
         if not isinstance(config, dilib.Config):
-            config = dilib.get_config(cast(Type[TC], config), **global_inputs)
+            config = dilib.get_config(config, **global_inputs)
         elif global_inputs:
             raise ValueError("Cannot set config obj and global inputs")
 
@@ -36,7 +39,7 @@ def get_container_objs(
 
 
 @pytest.mark.parametrize("more_type_safe", [True, False])
-def test_basic(more_type_safe: bool):
+def test_basic(more_type_safe: bool) -> None:
     _, config_proxy = get_container_objs(
         test_config.BasicConfig, more_type_safe=more_type_safe
     )
@@ -53,7 +56,7 @@ def test_basic(more_type_safe: bool):
 
 
 @pytest.mark.parametrize("more_type_safe", [True, False])
-def test_perturb_basic(more_type_safe: bool):
+def test_perturb_basic(more_type_safe: bool) -> None:
     config = test_config.get_config(
         test_config.BasicConfig, more_type_safe=more_type_safe
     )
@@ -67,7 +70,7 @@ def test_perturb_basic(more_type_safe: bool):
 
 
 @pytest.mark.parametrize("more_type_safe", [True, False])
-def test_get_nested(more_type_safe: bool):
+def test_get_nested(more_type_safe: bool) -> None:
     container, config_proxy = get_container_objs(
         test_config.GrandParentConfig, more_type_safe=more_type_safe
     )
@@ -77,7 +80,7 @@ def test_get_nested(more_type_safe: bool):
 
 
 @pytest.mark.parametrize("more_type_safe", [True, False])
-def test_dir(more_type_safe: bool):
+def test_dir(more_type_safe: bool) -> None:
     container, config_proxy = get_container_objs(
         test_config.GrandParentConfig, more_type_safe=more_type_safe
     )
@@ -97,7 +100,7 @@ def test_dir(more_type_safe: bool):
 
 
 @pytest.mark.parametrize("more_type_safe", [True, False])
-def test_perturb_nested(more_type_safe: bool):
+def test_perturb_nested(more_type_safe: bool) -> None:
     config = test_config.get_config(
         test_config.GrandParentConfig, more_type_safe=more_type_safe
     )
@@ -140,12 +143,12 @@ class MoreComplexPerturbConfig2(dilib.Config):
 
 
 class Doubler:
-    def __init__(self, value: int):
+    def __init__(self, value: int) -> None:
         self.value = value * 2
 
 
 @pytest.mark.parametrize("more_type_safe", [True, False])
-def test_perturb_nested_more_complex_input(more_type_safe: bool):
+def test_perturb_nested_more_complex_input(more_type_safe: bool) -> None:
     config = test_config.get_config(
         MoreComplexPerturbConfig1, more_type_safe=more_type_safe, x=100
     )
@@ -161,7 +164,7 @@ def test_perturb_nested_more_complex_input(more_type_safe: bool):
 
 
 @pytest.mark.parametrize("more_type_safe", [True, False])
-def test_perturb_nested_more_complex_object0(more_type_safe: bool):
+def test_perturb_nested_more_complex_object0(more_type_safe: bool) -> None:
     config = test_config.get_config(
         MoreComplexPerturbConfig1, more_type_safe=more_type_safe, x=100
     )
@@ -177,7 +180,7 @@ def test_perturb_nested_more_complex_object0(more_type_safe: bool):
 
 
 @pytest.mark.parametrize("more_type_safe", [True, False])
-def test_perturb_nested_more_complex_object1(more_type_safe: bool):
+def test_perturb_nested_more_complex_object1(more_type_safe: bool) -> None:
     config = test_config.get_config(
         MoreComplexPerturbConfig2, more_type_safe=more_type_safe, x=100
     )
@@ -192,14 +195,14 @@ def test_perturb_nested_more_complex_object1(more_type_safe: bool):
 
 
 @pytest.mark.parametrize("more_type_safe", [True, False])
-def test_nested_keyerror(more_type_safe: bool):
+def test_nested_keyerror(more_type_safe: bool) -> None:
     _, config_proxy = get_container_objs(
         test_config.ErrorGrandParentConfig, more_type_safe=more_type_safe
     )
 
     with pytest.raises(KeyError):
         try:
-            config_proxy.foobar
+            _ = config_proxy.foobar
         except KeyError as exc:
             assert str(exc) == (
                 "\"<class 'dilib.tests.test_config.ParentConfig0'>: "
@@ -209,7 +212,7 @@ def test_nested_keyerror(more_type_safe: bool):
 
 
 @pytest.mark.parametrize("more_type_safe", [True, False])
-def test_input_config(more_type_safe: bool):
+def test_input_config(more_type_safe: bool) -> None:
     config = test_config.get_config(
         test_config.InputConfig1, more_type_safe=more_type_safe, name="hi"
     )
@@ -224,7 +227,7 @@ def test_input_config(more_type_safe: bool):
 
 
 @pytest.mark.parametrize("more_type_safe", [True, False])
-def test_collection_config(more_type_safe: bool):
+def test_collection_config(more_type_safe: bool) -> None:
     _, config_proxy = get_container_objs(
         test_config.CollectionConfig, more_type_safe=more_type_safe
     )
@@ -243,7 +246,7 @@ def test_collection_config(more_type_safe: bool):
 
 
 @pytest.mark.parametrize("more_type_safe", [True, False])
-def test_anonymous(more_type_safe: bool):
+def test_anonymous(more_type_safe: bool) -> None:
     _, config_proxy = get_container_objs(
         test_config.AnonymousConfig, more_type_safe=more_type_safe
     )
@@ -253,7 +256,7 @@ def test_anonymous(more_type_safe: bool):
 
 
 @pytest.mark.parametrize("more_type_safe", [True, False])
-def test_underscore(more_type_safe: bool):
+def test_underscore(more_type_safe: bool) -> None:
     _, config_proxy = get_container_objs(
         test_config.WrapperConfig, more_type_safe=more_type_safe
     )
@@ -262,7 +265,7 @@ def test_underscore(more_type_safe: bool):
 
 
 @pytest.mark.parametrize("more_type_safe", [True, False])
-def test_forward(more_type_safe: bool):
+def test_forward(more_type_safe: bool) -> None:
     _, config_proxy = get_container_objs(
         test_config.ForwardConfig, more_type_safe=more_type_safe
     )
@@ -278,7 +281,7 @@ def test_forward(more_type_safe: bool):
 
 
 @pytest.mark.parametrize("more_type_safe", [True, False])
-def test_perturb_forward(more_type_safe: bool):
+def test_perturb_forward(more_type_safe: bool) -> None:
     config = test_config.get_config(
         test_config.ForwardConfig, more_type_safe=more_type_safe
     )
@@ -296,7 +299,7 @@ def test_perturb_forward(more_type_safe: bool):
 
 
 @pytest.mark.parametrize("more_type_safe", [True, False])
-def test_perturb_partial_kwargs(more_type_safe: bool):
+def test_perturb_partial_kwargs(more_type_safe: bool) -> None:
     config = test_config.get_config(
         test_config.PartialKwargsConfig, more_type_safe=more_type_safe
     )
@@ -314,7 +317,7 @@ def test_perturb_partial_kwargs(more_type_safe: bool):
 
 
 @pytest.mark.parametrize("more_type_safe", [True, False])
-def test_perturb_partial_kwargs_other(more_type_safe: bool):
+def test_perturb_partial_kwargs_other(more_type_safe: bool) -> None:
     config = test_config.get_config(
         test_config.PartialKwargsOtherConfig, more_type_safe=more_type_safe
     )
@@ -351,7 +354,7 @@ class NestedConfigObjAttrConfig(dilib.Config):
 
 
 @pytest.mark.parametrize("more_type_safe", [True, False])
-def test_obj_attr(more_type_safe: bool):
+def test_obj_attr(more_type_safe: bool) -> None:
     _, config_proxy = get_container_objs(
         ObjAttrConfig, more_type_safe=more_type_safe
     )
@@ -361,7 +364,7 @@ def test_obj_attr(more_type_safe: bool):
 
 
 @pytest.mark.parametrize("more_type_safe", [True, False])
-def test_nested_config_obj_attr(more_type_safe: bool):
+def test_nested_config_obj_attr(more_type_safe: bool) -> None:
     _, config_proxy = get_container_objs(
         NestedConfigObjAttrConfig, more_type_safe=more_type_safe
     )
@@ -371,7 +374,7 @@ def test_nested_config_obj_attr(more_type_safe: bool):
     assert config_proxy.test_obj is config_proxy.cfg.test_obj
 
 
-def test_typing():
+def test_typing() -> None:
     config = dilib.get_config(test_config.ParentConfig1)
 
     # Would trigger mypy (and PyCharm, since we're using get_container) error:
@@ -393,7 +396,7 @@ def test_typing():
 
 
 @pytest.mark.parametrize("more_type_safe", [True, False])
-def test_contains(more_type_safe: bool):
+def test_contains(more_type_safe: bool) -> None:
     container, config_proxy = get_container_objs(
         test_config.GrandParentConfig, more_type_safe=more_type_safe
     )

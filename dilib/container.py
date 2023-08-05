@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Dict, Generic, Iterable, Optional, TypeVar, Union, cast
+from typing import Any, Generic, Iterable, TypeVar, cast
 
 import dilib.config
 import dilib.specs
@@ -12,7 +12,9 @@ TC = TypeVar("TC", bound=dilib.config.Config)
 class ConfigProxy(Generic[TC]):
     """Read-only helper to marshal config values."""
 
-    def __init__(self, container: Container[TC], config: dilib.config.Config):
+    def __init__(
+        self, container: Container[TC], config: dilib.config.Config
+    ) -> None:
         self.container = container
         self.config = config
 
@@ -33,7 +35,7 @@ class ConfigProxy(Generic[TC]):
 class Container(Generic[TC]):
     """Materializes and caches (if necessary) objects based on given config."""
 
-    def __init__(self, config: TC):
+    def __init__(self, config: TC) -> None:
         if isinstance(config, dilib.config.ConfigSpec):
             raise ValueError(
                 "Expected Config type, got ConfigSpec. "
@@ -46,7 +48,7 @@ class Container(Generic[TC]):
         # perturb it (as this would require updating container caches)
         self._config.freeze()
 
-        self._instance_cache: Dict[Union[str, int], Any] = {}
+        self._instance_cache: dict[str | int, Any] = {}
 
     @property
     def config(self) -> TC:
@@ -158,14 +160,14 @@ class Container(Generic[TC]):
                 f"Unrecognized spec type: " f"{type(spec)} with key={key!r}"
             )
 
-    def get(self, key: str, default: Optional[Any] = None) -> Any:
+    def get(self, key: str, default: Any | None = None) -> Any:
         """Get materialized object aliased by key, with optional default."""
         if key in dir(self):
             return self[key]
 
         return default
 
-    def clear(self):
+    def clear(self) -> None:
         """Clear instance cache."""
         self._instance_cache.clear()
 

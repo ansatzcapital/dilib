@@ -10,7 +10,7 @@ permissions:
   contents: read
 
 jobs:
-  # Run pytest and linters via tox
+  # Run tests, linters, and checkers via nox
   test:
     runs-on: ${{ matrix.platform }}
 
@@ -25,27 +25,28 @@ jobs:
         python-version: ['3.7', '3.8', '3.9', '3.10', '3.11', 'pypy-3.8']
 
     steps:
-      - uses: actions/checkout@v3
-        if: ${{ ! startsWith(matrix.python-version, 'pypy-') }}
-      - uses: actions/checkout@v1
-        if: ${{ startsWith(matrix.python-version, 'pypy-') }}
-        # Using actions/checkout@v2 or later with pypy causes an error
-        # (see https://foss.heptapod.net/pypy/pypy/-/issues/3640)
+      - name: Check out code
+        uses: actions/checkout@v3
+
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python-version }}
+
       - name: Install dependencies
         run: |
           python -m pip install --upgrade setuptools pip wheel
-          python -m pip install tox
-      - name: Test with tox
-        run: tox -m ${{ matrix.python-version }}
-        if: ${{ ! (matrix.platform == 'windows-latest' && matrix.python-version == '3.8') }}
-      - name: Test with tox (Windows, py3.8)
-        # TODO: Skip pyright on Windows for now, but investigate later
-        run: tox -e black,docformatter,flake8,isort,mypy,py38
-        if: ${{ matrix.platform == 'windows-latest' && matrix.python-version == '3.8' }}
+          python -m pip install nox
+
+      - name: Test with nox
+        run: nox
+        if: ${{ matrix.python-version != '3.7' }}
+
+      # Skip type checkers on py3.7 because those package versions
+      # yield different results
+      - name: Test with nox (py3.7)
+        run: nox -s black pytest ruff
+        if: ${{ matrix.python-version == '3.7' }}
 
   # Test building and publishing
   # See:
@@ -68,14 +69,18 @@ jobs:
         ref: ${{ github.event.pull_request.head.sha }}
         # Grab entire history for setuptools_scm
         fetch-depth: 0
+
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v4
       with:
         python-version: ${{ matrix.python-version }}
+
     - name: Install dependencies
       run: |
         python -m pip install --upgrade build twine
+
     - name: Create packages
       run: python -m build
+
     - name: Run twine check
       run: twine check dist/*

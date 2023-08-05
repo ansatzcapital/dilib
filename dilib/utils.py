@@ -1,5 +1,7 @@
+from __future__ import annotations
+
 import datetime
-from typing import Any, Optional, Type
+from typing import Any
 
 import dilib.errors
 
@@ -16,8 +18,8 @@ PRIMITIVE_TYPES = (
 
 
 def check_type(
-    value: Any, type_: Optional[Type] = None, desc: Optional[str] = None
-):
+    value: Any, type_: type | None = None, desc: str | None = None
+) -> None:
     """Check that value is of given type and raise error if not.
 
     Args:
@@ -90,7 +92,7 @@ def nested_contains(obj: Any, address: str) -> bool:
     return last_address_part in obj
 
 
-def nested_setattr(obj: Any, address: str, value: Any):
+def nested_setattr(obj: Any, address: str, value: Any) -> None:
     """Set last attr of obj specified by "."-separated address to given value.
 
     >>> import unittest.mock

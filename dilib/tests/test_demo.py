@@ -1,11 +1,11 @@
 from __future__ import annotations
 
-from typing import List
+from typing import Any
 
 import dilib
 
 
-def get_db_value(_0, _1) -> bool:
+def get_db_value(_0: Any, _1: Any) -> bool:
     return False
 
 
@@ -18,12 +18,12 @@ class Engine:
     def started(self) -> bool:
         raise NotImplementedError()
 
-    def start(self):
+    def start(self) -> None:
         pass
 
 
 class DBEngine(Engine, dilib.SingletonMixin):
-    def __init__(self, db_address: str):
+    def __init__(self, db_address: str) -> None:
         self.db_address = db_address
 
     @property
@@ -38,18 +38,18 @@ class MockEngine(Engine, dilib.SingletonMixin):
 
 
 class Car(dilib.SingletonMixin):
-    def __init__(self, seats: List[Seat], engine: Engine):
+    def __init__(self, seats: list[Seat], engine: Engine) -> None:
         self.seats = seats
         self.engine = engine
 
         self.state = 0
 
-    def drive(self):
+    def drive(self) -> None:
         if not self.engine.started:
             self.engine.start()
         self.state = 1
 
-    def stop(self):
+    def stop(self) -> None:
         self.state = 0
 
 
@@ -69,7 +69,7 @@ class CarConfig(dilib.Config):
     car = Car(seats, engine=engine_config.engine)
 
 
-def test_basic_demo():
+def test_basic_demo() -> None:
     config = dilib.get_config(CarConfig, db_address="ava-db")
     container = dilib.get_container(config)
 
@@ -79,7 +79,7 @@ def test_basic_demo():
     assert isinstance(car.engine, DBEngine)
 
 
-def test_perturb_demo():
+def test_perturb_demo() -> None:
     config = dilib.get_config(CarConfig, db_address="ava-db")
     config.engine_config.engine = MockEngine()  # type: ignore
     container = dilib.get_container(config)

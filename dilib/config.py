@@ -1,6 +1,11 @@
 from __future__ import annotations
 
-from typing import Any, Dict, Iterable, Optional, Set, Type, TypeVar, Union
+from typing import (
+    Any,
+    Iterable,
+    TypeVar,
+    cast,
+)
 
 import dilib.errors
 import dilib.specs
@@ -13,12 +18,12 @@ TC = TypeVar("TC", bound="Config")
 class ConfigSpec(dilib.specs.Spec[TC]):
     """Represents nestable bag of types and values."""
 
-    def __init__(self, cls: Type[TC], **local_inputs):
+    def __init__(self, cls: type[TC], **local_inputs: Any) -> None:
         super().__init__()
         self.cls = cls
         self.local_inputs = local_inputs
 
-    def get(self, **global_inputs) -> Config:
+    def get(self, **global_inputs: Any) -> Config:
         """Instantiate with given global inputs."""
         config_locator = ConfigLocator(**global_inputs)
         config = config_locator.get(self)
@@ -69,7 +74,9 @@ class Config:
         "_get_child_class",
     )
 
-    def __new__(cls: Type[TC], *args, _materialize: bool = False, **kwargs):
+    def __new__(
+        cls: type[TC], *args: Any, _materialize: bool = False, **kwargs: Any
+    ) -> Any:
         if _materialize:
             return super().__new__(cls)
         else:
@@ -79,20 +86,22 @@ class Config:
             return ConfigSpec(cls, **kwargs)
 
     def __init__(
-        self, config_locator: Optional[ConfigLocator] = None, **local_inputs
-    ):
+        self,
+        config_locator: ConfigLocator | None = None,
+        **local_inputs: Any,
+    ) -> None:
         if config_locator is None:
             raise ValueError("Use config.get() to get instance of config")
         self._config_locator = config_locator
 
         # spec id -> spec key
-        self._keys: Dict[dilib.specs.SpecID, str] = {}
+        self._keys: dict[dilib.specs.SpecID, str] = {}
         # key -> spec
-        self._specs: Dict[str, dilib.specs.Spec] = {}
+        self._specs: dict[str, dilib.specs.Spec] = {}
         # child config key -> child config
-        self._child_configs: Dict[str, Config] = {}
+        self._child_configs: dict[str, Config] = {}
         # global input key -> spec id
-        self._global_inputs: Dict[str, dilib.specs.SpecID] = {}
+        self._global_inputs: dict[str, dilib.specs.SpecID] = {}
 
         self._loaded = False
         self._frozen = False
@@ -100,13 +109,13 @@ class Config:
         self._load(**local_inputs)
 
     # For mypy
-    def __call__(self, *args, **kwargs) -> Any:
+    def __call__(self, *args: Any, **kwargs: Any) -> Any:
         return None
 
     def _get_all_global_input_keys(
         self,
-        all_global_input_keys: Optional[Dict[str, dilib.specs.SpecID]] = None,
-    ) -> Set[str]:
+        all_global_input_keys: dict[str, dilib.specs.SpecID] | None = None,
+    ) -> set[str]:
         """Recursively get all global input keys of self and its children."""
         all_global_input_keys = (
             all_global_input_keys if all_global_input_keys is not None else {}
@@ -121,7 +130,7 @@ class Config:
 
             all_global_input_keys[key] = spec_id
 
-        for key, child_config in self._child_configs.items():
+        for _, child_config in self._child_configs.items():
             # noinspection PyProtectedMember
             child_config._get_all_global_input_keys(all_global_input_keys)
 
@@ -132,7 +141,7 @@ class Config:
         self,
         key: str,
         spec: dilib.specs._Input,
-        inputs: Dict[str, Any],
+        inputs: dict[str, Any],
         desc: str,
     ) -> dilib.specs._Object:
         """Convert Input spec to Object spec."""
@@ -144,14 +153,14 @@ class Config:
             else:
                 raise dilib.errors.InputConfigError(
                     f"{desc} input not set: {key!r}"
-                )
+                ) from None
 
         dilib.utils.check_type(value, spec.type_, desc=desc)
 
         # Preserve old spec id
         return dilib.specs._Object(value, spec_id=spec.spec_id)
 
-    def _load(self, **local_inputs):
+    def _load(self, **local_inputs: Any) -> None:
         """Transfer class variables to instance."""
         for key in self.__class__.__dict__:
             if (
@@ -196,7 +205,7 @@ class Config:
 
         self._loaded = True
 
-    def freeze(self):
+    def freeze(self) -> None:
         """Freeze to prevent any more perturbations to this Config instance."""
         self._frozen = True
 
@@ -216,13 +225,13 @@ class Config:
 
     # NB: Have to override getattribute instead of getattr to
     # prevent initial, class-level values from being used.
-    def __getattribute__(self, key: str) -> Union[dilib.specs.Spec, Config]:
+    def __getattribute__(self, key: str) -> dilib.specs.Spec | Config:
         if (
             key.startswith("__")
             or key == "_INTERNAL_FIELDS"
             or key in self._INTERNAL_FIELDS
         ):
-            return super().__getattribute__(key)
+            return super().__getattribute__(key)  # type: ignore[no-any-return]
 
         try:
             if key in self._child_configs:
@@ -230,7 +239,7 @@ class Config:
             else:
                 return self._specs[key]
         except KeyError:
-            raise KeyError(f"{self.__class__}: {key!r}")
+            raise KeyError(f"{self.__class__}: {key!r}") from None
 
     def __getitem__(self, key: str) -> Any:
         return dilib.utils.nested_getattr(self, key)
@@ -241,7 +250,7 @@ class Config:
         else:
             return key in dir(self)
 
-    def __setattr__(self, key: str, value: Any):
+    def __setattr__(self, key: str, value: Any) -> None:
         if (
             key.startswith("__")
             or key == "_INTERNAL_FIELDS"
@@ -276,7 +285,7 @@ class Config:
         # Transfer old spec id
         value.spec_id = old_spec.spec_id
 
-    def __setitem__(self, key: str, value: Any):
+    def __setitem__(self, key: str, value: Any) -> None:
         dilib.utils.nested_setattr(self, key, value)
 
     def __dir__(self) -> Iterable[str]:
@@ -288,10 +297,10 @@ class Config:
 class ConfigLocator:
     """Service locator to get instances of Configs by type."""
 
-    def __init__(self, **global_inputs):
-        self.global_inputs: Dict[str, Any] = global_inputs
+    def __init__(self, **global_inputs: Any) -> None:
+        self.global_inputs: dict[str, Any] = global_inputs
 
-        self._config_cache: Dict[ConfigSpec, Config] = {}
+        self._config_cache: dict[ConfigSpec, Config] = {}
 
     def get(self, config_spec: ConfigSpec) -> Config:
         """Get Config instance by type."""
@@ -307,9 +316,9 @@ class ConfigLocator:
             **config_spec.local_inputs,
         )
         self._config_cache[config_spec] = config
-        return config
+        return cast(Config, config)
 
 
-def get_config(config_cls: Type[TC], **global_inputs) -> TC:
+def get_config(config_cls: type[TC], **global_inputs: Any) -> TC:
     """More type-safe alternative to getting config objs."""
-    return config_cls().get(**global_inputs)
+    return config_cls().get(**global_inputs)  # type: ignore[no-any-return]
