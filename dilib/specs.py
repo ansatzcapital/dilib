@@ -219,14 +219,14 @@ def Singleton(  # noqa: N802
 def SingletonTuple(*args: T) -> tuple[T]:  # noqa: N802
     """Spec to create tuple with args and caching per config field."""
     # Cast because the return type will act like a tuple of T
-    return cast(tuple[T], _Singleton(tuple, args))
+    return cast("tuple[T]", _Singleton(tuple, args))
 
 
 # noinspection PyPep8Naming
 def SingletonList(*args: T) -> list[T]:  # noqa: N802
     """Spec to create list with args and caching per config field."""
     # Cast because the return type will act like a list of T
-    return cast(list[T], _Singleton(list, args))
+    return cast("list[T]", _Singleton(list, args))
 
 
 # TODO: If we drop python3.7, we can use the positional-only params
@@ -254,12 +254,12 @@ def SingletonDict(  # noqa: N802
     True
     """
     if values is MISSING:
-        # Cast because the return type will act like a TD
-        return cast(dict, _Singleton(dict, **kwargs))
+        # Cast because the return type will act like a dict of T
+        return cast("dict[Any, T]", _Singleton(dict, **kwargs))
     else:
-        # Cast because the return type will act like a TD
+        # Cast because the return type will act like a dict of T
         return cast(
-            dict,
+            "dict[Any, T]",
             _Singleton(_union_dict_and_kwargs, values, **kwargs),
         )
 

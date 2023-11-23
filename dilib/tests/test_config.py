@@ -239,14 +239,13 @@ class CollectionConfig(dilib.Config):
     y = dilib.Object(2)
     z = dilib.Object(3)
 
-    # TODO: Support more narrow Tuple types
-    foo_tuple: tuple = dilib.SingletonTuple(x, y)
+    foo_tuple: tuple[int] = dilib.SingletonTuple(x, y)
     foo_list: list[int] = dilib.SingletonList(x, y)
     foo_dict_kwargs: dict[str, int] = dilib.SingletonDict(x=x, y=y)
     foo_dict_values0: dict[int, int] = dilib.SingletonDict({1: x, 2: y})
     # TODO: Re-enable when min python version is 3.8
     # foo_dict_values1: Dict[str, int] = dilib.SingletonDict(values=x)
-    foo_dict_values2: dict[int, int] = dilib.SingletonDict(
+    foo_dict_values2: dict[str, int] = dilib.SingletonDict(
         {"x": x, "y": y}, z=z
     )
 
@@ -254,7 +253,9 @@ class CollectionConfig(dilib.Config):
     _untyped_foo_tuple = dilib.SingletonTuple(x, y)
     _untyped_foo_list = dilib.SingletonList(x, y)
     _untyped_foo_dict_kwargs = dilib.SingletonDict(x=x, y=y)
-    _untyped_foo_dict_values0 = dilib.SingletonDict({1: x, 2: y})
+    _untyped_foo_dict_values0: dict[int, int] = dilib.SingletonDict(
+        {1: x, 2: y}
+    )
 
 
 class AnonymousConfig(dilib.Config):
