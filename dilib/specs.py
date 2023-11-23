@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from typing import Any, Callable, Generic, TypeVar, cast
 
-from typing_extensions import ParamSpec, TypeAlias
+from typing_extensions import ParamSpec, TypeAlias, override
 
 MISSING = object()
 MISSING_DICT: dict = dict()  # Need a special typed sentinel for mypy
@@ -49,6 +49,7 @@ class AttrFuture:
 class Spec(Generic[T]):
     """Represents delayed object to be instantiated later."""
 
+    _INTERNAL_FIELDS = ["spec_id"]
     NEXT_SPEC_ID = 0
 
     def __init__(self, spec_id: SpecID | None = None) -> None:
@@ -56,6 +57,21 @@ class Spec(Generic[T]):
 
     def __getattr__(self, attr: str) -> AttrFuture:
         return AttrFuture(self.spec_id, [attr])
+
+    @override
+    def __setattr__(self, name: str, value: Any) -> None:
+        if (
+            name.startswith("__")
+            or name == "_INTERNAL_FIELDS"
+            or name in self._INTERNAL_FIELDS
+        ):
+            return super().__setattr__(name, value)
+
+        raise RuntimeError(
+            "Cannot set on a spec. "
+            "If you'd like to perturb a value used by a spec, "
+            "promote it to be a config field and perturb the config instead."
+        )
 
     # For mypy
     def __call__(self, *args: Any, **kwargs: Any) -> Any:
@@ -72,6 +88,8 @@ class Spec(Generic[T]):
 
 class _Object(Spec[T]):
     """Represents fully-instantiated object to pass through."""
+
+    _INTERNAL_FIELDS = Spec._INTERNAL_FIELDS + ["obj"]
 
     def __init__(self, obj: T, spec_id: SpecID | None = None) -> None:
         super().__init__(spec_id=spec_id)
@@ -91,6 +109,8 @@ def Object(obj: T) -> T:  # noqa: N802
 
 class _Input(Spec[T]):
     """Represents user input to config."""
+
+    _INTERNAL_FIELDS = Spec._INTERNAL_FIELDS + ["type_", "default"]
 
     def __init__(
         self, type_: type[T] | None = None, default: Any = MISSING
@@ -142,6 +162,13 @@ def LocalInput(  # noqa: N802
 
 class _Callable(Spec[T]):
     """Represents callable (e.g., func, type) to be called with given args."""
+
+    _INTERNAL_FIELDS = Spec._INTERNAL_FIELDS + [
+        "func_or_type",
+        "args",
+        "lazy_kwargs",
+        "kwargs",
+    ]
 
     def __init__(
         self,

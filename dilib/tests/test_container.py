@@ -409,3 +409,13 @@ def test_contains(more_type_safe: bool) -> None:
         assert missing_key not in container
         assert missing_key not in config_proxy
         assert missing_key not in container._config
+
+
+class PerturbSpecConfig(dilib.Config):
+    foo = dilib.Singleton(test_config.ValuesWrapper, 1, 2, z=3)
+
+
+def test_perturb_spec() -> None:
+    config = dilib.get_config(PerturbSpecConfig)
+    with pytest.raises(RuntimeError):
+        config.foo.x = 100  # type: ignore[misc]
