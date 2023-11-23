@@ -50,6 +50,8 @@ ignore_missing_imports = true
 strict_equality = true
 strict_optional = true
 warn_redundant_casts = true
+# See https://mypy-lang.blogspot.com/2023/08/mypy-15-released.html
+explicit-override = true
 
 [tool.pyright]
 include = ["**/*.py"]
