@@ -62,11 +62,13 @@ def mypy(session: nox.Session) -> None:
 def pyright(session: nox.Session) -> None:
     if is_isolated_venv(session):
         session.install("-e", ".[test]")
-    session.run(
-        "pyright",
-        "dilib",
-        env={"PYRIGHT_PYTHON_DEBUG": "1", "PYRIGHT_PYTHON_VERBOSE": "1"},
-    )
+
+    env = {"PYRIGHT_PYTHON_VERBOSE": "1"}
+    # Enable for debugging
+    if False:
+        env["PYRIGHT_PYTHON_DEBUG"] = "1"
+
+    session.run("pyright", "dilib", env=env)
 
 
 @nox.session(tags=["test"])
