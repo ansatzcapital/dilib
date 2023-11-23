@@ -34,13 +34,15 @@ class ValuesWrapper:
     z: Any
 
 
+# TODO: Remove these explicit override ignores once
+# https://github.com/python/mypy/issues/16452 is fixed.
 @dataclasses.dataclass(frozen=True)
-class SingletonValueWrapper(dilib.SingletonMixin, ValueWrapper):
+class SingletonValueWrapper(dilib.SingletonMixin, ValueWrapper):  # type: ignore[explicit-override]
     pass
 
 
 @dataclasses.dataclass(frozen=True)
-class PrototypeValueWrapper(dilib.PrototypeMixin, ValueWrapper):
+class PrototypeValueWrapper(dilib.PrototypeMixin, ValueWrapper):  # type: ignore[explicit-override]
     pass
 
 

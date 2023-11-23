@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from typing import Any, Generic, Iterable, TypeVar, cast
 
+from typing_extensions import override
+
 import dilib.config
 import dilib.specs
 import dilib.utils
@@ -28,6 +30,7 @@ class ConfigProxy(Generic[TC]):
     def __contains__(self, key: str) -> bool:
         return key in self.config
 
+    @override
     def __dir__(self) -> Iterable[str]:
         return dir(self.config)
 
@@ -180,6 +183,7 @@ class Container(Generic[TC]):
     def __contains__(self, key: str) -> bool:
         return dilib.utils.nested_contains(self._config, key)
 
+    @override
     def __dir__(self) -> Iterable[str]:
         return dir(self._config)
 
