@@ -70,7 +70,7 @@ class Spec(Generic[T]):
             return super().__setattr__(name, value)
 
         # NB: We considered supporting this kind of perturbation,
-        # but the issue os that we don't know whether the config
+        # but the issue is that we don't know whether the config
         # this spec is attached to has been frozen. For sake of safety
         # and simplicity, we raise an error here instead.
         raise dilib.errors.PerturbSpecError(
