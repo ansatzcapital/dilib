@@ -9,12 +9,12 @@ from __future__ import annotations
 
 from typing import Any, Callable, Generic, TypeVar, cast
 
-from typing_extensions import ParamSpec
+from typing_extensions import ParamSpec, TypeAlias
 
 MISSING = object()
 MISSING_DICT: dict = dict()  # Need a special typed sentinel for mypy
 
-SpecID = int
+SpecID: TypeAlias = int
 P = ParamSpec("P")
 T = TypeVar("T")
 

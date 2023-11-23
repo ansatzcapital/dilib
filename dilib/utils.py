@@ -1,11 +1,11 @@
 from __future__ import annotations
 
 import datetime
-from typing import Any
+from typing import Any, Final
 
 import dilib.errors
 
-PRIMITIVE_TYPES = (
+PRIMITIVE_TYPES: Final[tuple[type, ...]] = (
     type(None),
     bool,
     int,
