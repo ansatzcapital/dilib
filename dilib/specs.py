@@ -7,16 +7,7 @@ that mimic expected typing behavior.
 """
 from __future__ import annotations
 
-from typing import (
-    Any,
-    Callable,
-    Dict,
-    Generic,
-    List,
-    Tuple,
-    TypeVar,
-    cast,
-)
+from typing import Any, Callable, Generic, TypeVar, cast
 
 from typing_extensions import ParamSpec
 
@@ -228,14 +219,14 @@ def Singleton(  # noqa: N802
 def SingletonTuple(*args: Any) -> tuple:  # noqa: N802
     """Spec to create tuple with args and caching per config field."""
     # Cast because the return type will act like a TT
-    return cast(Tuple, _Singleton(tuple, args))
+    return cast(tuple, _Singleton(tuple, args))
 
 
 # noinspection PyPep8Naming
 def SingletonList(*args: Any) -> list:  # noqa: N802
     """Spec to create list with args and caching per config field."""
     # Cast because the return type will act like a TL
-    return cast(List, _Singleton(list, args))
+    return cast(list, _Singleton(list, args))
 
 
 # TODO: If we drop python3.7, we can use the positional-only params
@@ -244,7 +235,7 @@ def SingletonList(*args: Any) -> list:  # noqa: N802
 #   and positional values like dilib.SingletonDict({"a": 1}).
 # noinspection PyPep8Naming
 def SingletonDict(  # noqa: N802
-    values: Dict = MISSING_DICT,  # noqa
+    values: dict = MISSING_DICT,  # noqa
     **kwargs: Any,
 ) -> dict:
     """Spec to create dict with args and caching per config field.
@@ -264,11 +255,11 @@ def SingletonDict(  # noqa: N802
     """
     if values is MISSING:
         # Cast because the return type will act like a TD
-        return cast(Dict, _Singleton(dict, **kwargs))
+        return cast(dict, _Singleton(dict, **kwargs))
     else:
         # Cast because the return type will act like a TD
         return cast(
-            Dict,
+            dict,
             _Singleton(_union_dict_and_kwargs, values, **kwargs),
         )
 
