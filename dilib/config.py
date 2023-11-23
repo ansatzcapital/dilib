@@ -1,11 +1,6 @@
 from __future__ import annotations
 
-from typing import (
-    Any,
-    Iterable,
-    TypeVar,
-    cast,
-)
+from typing import Any, Iterable, TypeVar, cast
 
 import dilib.errors
 import dilib.specs
@@ -75,7 +70,7 @@ class Config:
     )
 
     def __new__(
-        cls: type[TC], *args: Any, _materialize: bool = False, **kwargs: Any
+        cls, *args: Any, _materialize: bool = False, **kwargs: Any
     ) -> Any:
         if _materialize:
             return super().__new__(cls)
