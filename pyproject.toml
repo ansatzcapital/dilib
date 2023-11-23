@@ -39,6 +39,7 @@ exclude = ["**/__pycache__", "**/.*"]
 reportPrivateImportUsage = "none"
 
 [tool.ruff]
+# https://docs.astral.sh/ruff/formatter/
 target-version = "py37"
 line-length = 79
 
