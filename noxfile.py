@@ -19,7 +19,7 @@ To run all static linters and checkers:
 
 To pick a particular session, e.g.:
     nox --list
-    nox -s fix_black
+    nox -s fix_ruff
     nox -s pytest -- -k test_name
 
 To do an editable install into your current env:
@@ -35,9 +35,9 @@ import nox.virtualenv
 # Hack to fix tags for non-defaulted sessions (otherwise, running
 # `nox -t fix` won't pick up any sessions)
 if any(arg.startswith("fix") for arg in sys.argv):
-    nox.options.sessions = ["fix_black", "fix_ruff"]
+    nox.options.sessions = ["fix_ruff"]
 else:
-    nox.options.sessions = ["black", "mypy", "pyright", "pytest", "ruff"]
+    nox.options.sessions = ["mypy", "pyright", "pytest", "ruff"]
 
 
 def is_isolated_venv(session: nox.Session) -> bool:
@@ -51,20 +51,6 @@ def is_isolated_venv(session: nox.Session) -> bool:
     return not isinstance(session.virtualenv, nox.virtualenv.PassthroughEnv)
 
 
-@nox.session(tags=["lint", "static"])
-def black(session: nox.Session) -> None:
-    if is_isolated_venv(session):
-        session.install("-e", ".[test]")
-    session.run("black", "--check", "dilib")
-
-
-@nox.session(tags=["fix"])
-def fix_black(session: nox.Session) -> None:
-    if is_isolated_venv(session):
-        session.install("-e", ".[test]")
-    session.run("black", "dilib")
-
-
 @nox.session(tags=["static", "typecheck"])
 def mypy(session: nox.Session) -> None:
     if is_isolated_venv(session):
@@ -76,11 +62,13 @@ def mypy(session: nox.Session) -> None:
 def pyright(session: nox.Session) -> None:
     if is_isolated_venv(session):
         session.install("-e", ".[test]")
-    session.run(
-        "pyright",
-        "dilib",
-        env={"PYRIGHT_PYTHON_DEBUG": "1", "PYRIGHT_PYTHON_VERBOSE": "1"},
-    )
+
+    env = {"PYRIGHT_PYTHON_VERBOSE": "1"}
+    # Enable for debugging
+    if False:
+        env["PYRIGHT_PYTHON_DEBUG"] = "1"
+
+    session.run("pyright", "dilib", env=env)
 
 
 @nox.session(tags=["test"])
@@ -95,6 +83,7 @@ def ruff(session: nox.Session) -> None:
     if is_isolated_venv(session):
         session.install("-e", ".[test]")
     session.run("ruff", "check", "dilib")
+    session.run("ruff", "format", "dilib", "--check")
 
 
 @nox.session(tags=["fix"])
@@ -102,6 +91,7 @@ def fix_ruff(session: nox.Session) -> None:
     if is_isolated_venv(session):
         session.install("-e", ".[test]")
     session.run("ruff", "check", "dilib", "--fix")
+    session.run("ruff", "format", "dilib")
 
 
 @nox.session(venv_backend="none")

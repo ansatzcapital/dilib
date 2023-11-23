@@ -238,8 +238,7 @@ def test_collection_config(more_type_safe: bool) -> None:
     assert config_proxy.foo_list == [1, 2]
     assert config_proxy.foo_dict_kwargs == {"x": 1, "y": 2}
     assert config_proxy.foo_dict_values0 == {1: 1, 2: 2}
-    # TODO: Re-enable when min python version is 3.8
-    # assert container.config.foo_dict_values1 == {"values": 1}
+    assert config_proxy.foo_dict_values1 == {"values": 1}
     assert config_proxy.foo_dict_values2 == {"x": 1, "y": 2, "z": 3}
 
     assert config_proxy.foo_tuple is config_proxy.foo_tuple

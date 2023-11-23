@@ -1,11 +1,8 @@
 from __future__ import annotations
 
-from typing import (
-    Any,
-    Iterable,
-    TypeVar,
-    cast,
-)
+from typing import Any, Iterable, TypeVar, cast
+
+from typing_extensions import override
 
 import dilib.errors
 import dilib.specs
@@ -39,6 +36,7 @@ class ConfigSpec(dilib.specs.Spec[TC]):
 
         return config
 
+    @override
     def __eq__(self, other: Any) -> bool:
         return (
             type(other) is ConfigSpec
@@ -46,6 +44,7 @@ class ConfigSpec(dilib.specs.Spec[TC]):
             and self.local_inputs == other.local_inputs
         )
 
+    @override
     def __hash__(self) -> int:
         return hash(
             (
@@ -75,7 +74,7 @@ class Config:
     )
 
     def __new__(
-        cls: type[TC], *args: Any, _materialize: bool = False, **kwargs: Any
+        cls, *args: Any, _materialize: bool = False, **kwargs: Any
     ) -> Any:
         if _materialize:
             return super().__new__(cls)
@@ -225,6 +224,7 @@ class Config:
 
     # NB: Have to override getattribute instead of getattr to
     # prevent initial, class-level values from being used.
+    @override
     def __getattribute__(self, key: str) -> dilib.specs.Spec | Config:
         if (
             key.startswith("__")
@@ -250,6 +250,7 @@ class Config:
         else:
             return key in dir(self)
 
+    @override
     def __setattr__(self, key: str, value: Any) -> None:
         if (
             key.startswith("__")
@@ -288,6 +289,7 @@ class Config:
     def __setitem__(self, key: str, value: Any) -> None:
         dilib.utils.nested_setattr(self, key, value)
 
+    @override
     def __dir__(self) -> Iterable[str]:
         return sorted(
             list(self._specs.keys()) + list(self._child_configs.keys())

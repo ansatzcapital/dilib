@@ -1,15 +1,19 @@
 from __future__ import annotations
 
+import abc
 from typing import Sequence, TypeVar
+
+from typing_extensions import override
 
 import dilib
 
 T = TypeVar("T")
 
 
-class BaseMultiplier:
+class BaseMultiplier(abc.ABC):
+    @abc.abstractmethod
     def get_result(self) -> int:
-        raise NotImplementedError
+        ...
 
 
 class SimpleMultiplier(BaseMultiplier):
@@ -17,11 +21,13 @@ class SimpleMultiplier(BaseMultiplier):
         self.x = x
         self.y = y
 
+    @override
     def get_result(self) -> int:
         return self.x * self.y
 
 
 class MockMultipler(BaseMultiplier):
+    @override
     def get_result(self) -> int:
         return 42
 

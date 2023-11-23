@@ -1,6 +1,9 @@
 from __future__ import annotations
 
+import abc
 from typing import Any
+
+from typing_extensions import override
 
 import dilib
 
@@ -13,13 +16,15 @@ class Seat:
     pass
 
 
-class Engine:
+class Engine(abc.ABC):
     @property
+    @abc.abstractmethod
     def started(self) -> bool:
-        raise NotImplementedError()
+        ...
 
+    @abc.abstractmethod
     def start(self) -> None:
-        pass
+        ...
 
 
 class DBEngine(Engine, dilib.SingletonMixin):
@@ -27,14 +32,24 @@ class DBEngine(Engine, dilib.SingletonMixin):
         self.db_address = db_address
 
     @property
+    @override
     def started(self) -> bool:
         return get_db_value(self.db_address, "engine")
+
+    @override
+    def start(self) -> None:
+        pass
 
 
 class MockEngine(Engine, dilib.SingletonMixin):
     @property
+    @override
     def started(self) -> bool:
         return True
+
+    @override
+    def start(self) -> None:
+        pass
 
 
 class Car(dilib.SingletonMixin):

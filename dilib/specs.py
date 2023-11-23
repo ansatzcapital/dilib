@@ -7,23 +7,14 @@ that mimic expected typing behavior.
 """
 from __future__ import annotations
 
-from typing import (
-    Any,
-    Callable,
-    Dict,
-    Generic,
-    List,
-    Tuple,
-    TypeVar,
-    cast,
-)
+from typing import Any, Callable, Generic, TypeVar, cast
 
-from typing_extensions import ParamSpec
+from typing_extensions import ParamSpec, TypeAlias
 
 MISSING = object()
 MISSING_DICT: dict = dict()  # Need a special typed sentinel for mypy
 
-SpecID = int
+SpecID: TypeAlias = int
 P = ParamSpec("P")
 T = TypeVar("T")
 
@@ -225,28 +216,25 @@ def Singleton(  # noqa: N802
 
 
 # noinspection PyPep8Naming
-def SingletonTuple(*args: Any) -> tuple:  # noqa: N802
+def SingletonTuple(*args: T) -> tuple[T]:  # noqa: N802
     """Spec to create tuple with args and caching per config field."""
-    # Cast because the return type will act like a TT
-    return cast(Tuple, _Singleton(tuple, args))
+    # Cast because the return type will act like a tuple of T
+    return cast("tuple[T]", _Singleton(tuple, args))
 
 
 # noinspection PyPep8Naming
-def SingletonList(*args: Any) -> list:  # noqa: N802
+def SingletonList(*args: T) -> list[T]:  # noqa: N802
     """Spec to create list with args and caching per config field."""
-    # Cast because the return type will act like a TL
-    return cast(List, _Singleton(list, args))
+    # Cast because the return type will act like a list of T
+    return cast("list[T]", _Singleton(list, args))
 
 
-# TODO: If we drop python3.7, we can use the positional-only params
-#   functionality introduced in python3.8 to distringuish between
-#   dilib.SingletonDict(values=1), which represents {"values": 1},
-#   and positional values like dilib.SingletonDict({"a": 1}).
 # noinspection PyPep8Naming
 def SingletonDict(  # noqa: N802
-    values: Dict = MISSING_DICT,  # noqa
-    **kwargs: Any,
-) -> dict:
+    values: dict[Any, T] = MISSING_DICT,  # noqa
+    /,
+    **kwargs: T,
+) -> dict[Any, T]:
     """Spec to create dict with args and caching per config field.
 
     Can specify either by pointing to a dict, passing in kwargs,
@@ -262,13 +250,13 @@ def SingletonDict(  # noqa: N802
     >>> dilib.SingletonDict(x=spec0, y=spec1) is not None
     True
     """
-    if values is MISSING:
-        # Cast because the return type will act like a TD
-        return cast(Dict, _Singleton(dict, **kwargs))
+    if values is MISSING_DICT:
+        # Cast because the return type will act like a dict of T
+        return cast("dict[Any, T]", _Singleton(dict, **kwargs))
     else:
-        # Cast because the return type will act like a TD
+        # Cast because the return type will act like a dict of T
         return cast(
-            Dict,
+            "dict[Any, T]",
             _Singleton(_union_dict_and_kwargs, values, **kwargs),
         )
 
