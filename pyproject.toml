@@ -39,7 +39,7 @@ exclude = ["**/__pycache__", "**/.*"]
 reportPrivateImportUsage = "none"
 
 [tool.ruff]
-target-version = "py37"
+target-version = "py38"
 line-length = 79
 
 select = [
