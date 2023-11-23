@@ -45,7 +45,7 @@ jobs:
       # Skip type checkers on py3.7 because those package versions
       # yield different results
       - name: Test with nox (py3.7)
-        run: nox -s black pytest ruff
+        run: nox -s pytest ruff
         if: ${{ matrix.python-version == '3.7' }}
 
   # Test building and publishing
