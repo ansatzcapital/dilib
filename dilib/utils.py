@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import datetime
-from typing import Any, Final
+from typing import Any
+
+from typing_extensions import Final
 
 import dilib.errors
 
