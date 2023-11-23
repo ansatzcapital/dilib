@@ -417,5 +417,5 @@ class PerturbSpecConfig(dilib.Config):
 
 def test_perturb_spec() -> None:
     config = dilib.get_config(PerturbSpecConfig)
-    with pytest.raises(RuntimeError):
+    with pytest.raises(dilib.PerturbSpecError):
         config.foo.x = 100  # type: ignore[misc]

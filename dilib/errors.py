@@ -16,3 +16,7 @@ class NewKeyConfigError(ConfigError):
 
 class SetChildConfigError(ConfigError):
     pass
+
+
+class PerturbSpecError(ConfigError):
+    pass

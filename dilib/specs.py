@@ -11,6 +11,8 @@ from typing import Any, Callable, Generic, TypeVar, cast
 
 from typing_extensions import ParamSpec, TypeAlias, override
 
+import dilib.errors
+
 MISSING = object()
 MISSING_DICT: dict = dict()  # Need a special typed sentinel for mypy
 
@@ -67,7 +69,11 @@ class Spec(Generic[T]):
         ):
             return super().__setattr__(name, value)
 
-        raise RuntimeError(
+        # NB: We considered supporting this kind of perturbation,
+        # but the issue os that we don't know whether the config
+        # this spec is attached to has been frozen. For sake of safety
+        # and simplicity, we raise an error here instead.
+        raise dilib.errors.PerturbSpecError(
             "Cannot set on a spec. "
             "If you'd like to perturb a value used by a spec, "
             "promote it to be a config field and perturb the config instead."
