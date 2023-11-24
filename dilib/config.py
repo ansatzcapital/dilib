@@ -15,6 +15,11 @@ TC = TypeVar("TC", bound="Config")
 class ConfigSpec(dilib.specs.Spec[TC]):
     """Represents nestable bag of types and values."""
 
+    _INTERNAL_FIELDS = dilib.specs.Spec._INTERNAL_FIELDS + [
+        "cls",
+        "local_inputs",
+    ]
+
     def __init__(self, cls: type[TC], **local_inputs: Any) -> None:
         super().__init__()
         self.cls = cls
@@ -57,7 +62,7 @@ class ConfigSpec(dilib.specs.Spec[TC]):
 class Config:
     """Description of how specs depend on each other."""
 
-    _INTERNAL_FIELDS = (
+    _INTERNAL_FIELDS = [
         "_config_locator",
         "_keys",
         "_specs",
@@ -71,7 +76,7 @@ class Config:
         "freeze",
         "_get_spec",
         "_get_child_class",
-    )
+    ]
 
     def __new__(
         cls, *args: Any, _materialize: bool = False, **kwargs: Any
@@ -257,8 +262,7 @@ class Config:
             or key == "_INTERNAL_FIELDS"
             or key in self._INTERNAL_FIELDS
         ):
-            super().__setattr__(key, value)
-            return
+            return super().__setattr__(key, value)
 
         if self._frozen:
             raise dilib.errors.FrozenConfigError(

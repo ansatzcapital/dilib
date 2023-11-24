@@ -8,6 +8,7 @@ from dilib.errors import ConfigError as ConfigError
 from dilib.errors import FrozenConfigError as FrozenConfigError
 from dilib.errors import InputConfigError as InputConfigError
 from dilib.errors import NewKeyConfigError as NewKeyConfigError
+from dilib.errors import PerturbSpecError as PerturbSpecError
 from dilib.errors import SetChildConfigError as SetChildConfigError
 from dilib.specs import Forward as Forward
 from dilib.specs import GlobalInput as GlobalInput
