@@ -37,7 +37,7 @@ import nox.virtualenv
 if any(arg.startswith("fix") for arg in sys.argv):
     nox.options.sessions = ["fix_ruff"]
 else:
-    nox.options.sessions = ["mypy", "pyright", "pytest", "ruff"]
+    nox.options.sessions = ["ruff", "mypy", "pyright", "pytest"]
 
 
 def is_isolated_venv(session: nox.Session) -> bool:
@@ -82,16 +82,16 @@ def pytest(session: nox.Session) -> None:
 def ruff(session: nox.Session) -> None:
     if is_isolated_venv(session):
         session.install("-e", ".[test]")
-    session.run("ruff", "check", "dilib")
     session.run("ruff", "format", "dilib", "--check")
+    session.run("ruff", "check", "dilib")
 
 
 @nox.session(tags=["fix"])
 def fix_ruff(session: nox.Session) -> None:
     if is_isolated_venv(session):
         session.install("-e", ".[test]")
-    session.run("ruff", "check", "dilib", "--fix")
     session.run("ruff", "format", "dilib")
+    session.run("ruff", "check", "dilib", "--fix")
 
 
 @nox.session(venv_backend="none")
