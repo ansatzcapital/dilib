@@ -12,8 +12,7 @@ T = TypeVar("T")
 
 class BaseMultiplier(abc.ABC):
     @abc.abstractmethod
-    def get_result(self) -> int:
-        ...
+    def get_result(self) -> int: ...
 
 
 class SimpleMultiplier(BaseMultiplier):

@@ -381,9 +381,9 @@ def test_typing() -> None:
     #     test_config.BasicConfig,
     # ] = dilib.get_container(config)
 
-    container: dilib.Container[
-        test_config.ParentConfig1
-    ] = dilib.get_container(config)
+    container: dilib.Container[test_config.ParentConfig1] = (
+        dilib.get_container(config)
+    )
 
     # Would trigger mypy error:
     # x: str = container.config.basic_config.x

@@ -19,12 +19,10 @@ class Seat:
 class Engine(abc.ABC):
     @property
     @abc.abstractmethod
-    def started(self) -> bool:
-        ...
+    def started(self) -> bool: ...
 
     @abc.abstractmethod
-    def start(self) -> None:
-        ...
+    def start(self) -> None: ...
 
 
 class DBEngine(Engine, dilib.SingletonMixin):
