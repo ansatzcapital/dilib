@@ -27,6 +27,7 @@ To do an editable install into your current env:
 
 See https://nox.thea.codes/en/stable/index.html for more.
 """
+
 import sys
 
 import nox
@@ -60,6 +61,12 @@ def mypy(session: nox.Session) -> None:
 
 @nox.session(tags=["static", "typecheck"])
 def pyright(session: nox.Session) -> None:
+    # TODO: Remove once pyright >= 1.1.387 is available. See:
+    #   - https://github.com/microsoft/pyright/issues/9296
+    #   - https://docs.python.org/3/library/sys.html#sys.platform
+    if sys.platform == "win32":
+        session.install("pyright <= 1.1.385")
+
     if is_isolated_venv(session):
         session.install("-e", ".[test]")
 
