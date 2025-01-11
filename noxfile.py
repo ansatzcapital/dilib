@@ -28,6 +28,7 @@ To do an editable install into your current env:
 See https://nox.thea.codes/en/stable/index.html for more.
 """
 
+import os
 import sys
 
 import nox
@@ -56,6 +57,11 @@ def is_isolated_venv(session: nox.Session) -> bool:
 def mypy(session: nox.Session) -> None:
     if is_isolated_venv(session):
         session.install("-e", ".[test]")
+
+    # To help debugging
+    if os.environ.get("CI", "false") == "true":
+        session.run("pip", "list")
+
     session.run("mypy", "dilib")
 
 
@@ -70,6 +76,10 @@ def pyright(session: nox.Session) -> None:
     if is_isolated_venv(session):
         session.install("-e", ".[test]")
 
+    # To help debugging
+    if os.environ.get("CI", "false") == "true":
+        session.run("pip", "list")
+
     env = {"PYRIGHT_PYTHON_VERBOSE": "1"}
     # Enable for debugging
     if False:
@@ -82,6 +92,11 @@ def pyright(session: nox.Session) -> None:
 def pytest(session: nox.Session) -> None:
     if is_isolated_venv(session):
         session.install("-e", ".[test]")
+
+    # To help debugging
+    if os.environ.get("CI", "false") == "true":
+        session.run("pip", "list")
+
     session.run("pytest", "dilib", *session.posargs)
 
 
@@ -89,6 +104,11 @@ def pytest(session: nox.Session) -> None:
 def ruff(session: nox.Session) -> None:
     if is_isolated_venv(session):
         session.install("-e", ".[test]")
+
+    # To help debugging
+    if os.environ.get("CI", "false") == "true":
+        session.run("pip", "list")
+
     session.run("ruff", "format", "dilib", "--check")
     session.run("ruff", "check", "dilib")
 
@@ -97,6 +117,7 @@ def ruff(session: nox.Session) -> None:
 def fix_ruff(session: nox.Session) -> None:
     if is_isolated_venv(session):
         session.install("-e", ".[test]")
+
     session.run("ruff", "format", "dilib")
     session.run("ruff", "check", "dilib", "--fix")
 
