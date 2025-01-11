@@ -58,7 +58,7 @@ def mypy(session: nox.Session) -> None:
     if is_isolated_venv(session):
         session.install("-e", ".[test]")
 
-    # To help debugging
+    # To help  debugging
     if os.environ.get("CI", "false") == "true":
         session.run("pip", "list")
 
