@@ -9,3 +9,4 @@ dist
 .tox
 version.py
 *.ipynb_checkpoints
+.DS_Store
