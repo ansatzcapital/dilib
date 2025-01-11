@@ -160,7 +160,7 @@ class Container(Generic[TC]):
             )
         else:
             raise ValueError(
-                f"Unrecognized spec type: " f"{type(spec)} with key={key!r}"
+                f"Unrecognized spec type: {type(spec)} with key={key!r}"
             )
 
     def get(self, key: str, default: Any | None = None) -> Any:
