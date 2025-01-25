@@ -14,6 +14,12 @@ Dependency injection (DI) library for python
 pip install dilib
 ```
 
+## Documentation
+
+Documentation, design principles, and tips are available [here](https://github.io/ansatzcapital/dilib).
+
+Examples are available [here](https://github.com/ansatzcapital/dilib/tree/main/examples).
+
 ## Quick Start
 
 The framework takes a 3-step approach to configuring and instantiating objects.
@@ -320,4 +326,3 @@ model with references to a particular DI framework (ideally, you should
 be able to switch DI frameworks without a single change to model code),
 and (2) you're hard-wiring the spec type to the class, removing
 a degree of freedom from the config author.
-
