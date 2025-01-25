@@ -135,3 +135,31 @@ def develop(session: nox.Session) -> None:
         "--config-settings",
         "editable_mode=compat",
     )
+
+
+@nox.session(tags=["docs"])
+def create_docs_template(session: nox.Session) -> None:
+    session.run(
+        "sphinx-quickstart",
+        "docs",
+        "--project",
+        "dilib",
+        "--author",
+        "author",
+        "--sep",
+        "--release",
+        "",
+        "--language",
+        "en",
+        "--ext-autodoc",
+        "--ext-githubpages",
+        "--extensions",
+        "myst_parser",
+    )
+
+
+@nox.session(tags=["docs"])
+def gen_docs(session: nox.Session) -> None:
+    session.chdir("docs")
+    session.run("sphinx-apidoc", "-o", "source", "../dilib", external=True)
+    session.run("make", "html", external=True)
