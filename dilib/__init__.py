@@ -23,3 +23,4 @@ from dilib.specs import SingletonMixin as SingletonMixin
 from dilib.specs import SingletonTuple as SingletonTuple
 from dilib.specs import Spec as Spec
 from dilib.specs import SpecID as SpecID
+from dilib.specs import config_context as config_context

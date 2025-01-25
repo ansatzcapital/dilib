@@ -66,20 +66,21 @@ class Car(dilib.SingletonMixin):
         self.state = 0
 
 
-class EngineConfig(dilib.Config):
-    db_address = dilib.GlobalInput(type_=str, default="ava-db")
-    engine = DBEngine(db_address)
+with dilib.config_context():
 
+    class EngineConfig(dilib.Config):
+        db_address = dilib.GlobalInput(type_=str, default="ava-db")
+        engine = DBEngine(db_address)
 
-class CarConfig(dilib.Config):
-    engine_config = EngineConfig()
+    class CarConfig(dilib.Config):
+        engine_config = EngineConfig()
 
-    seat_cls = dilib.Object(Seat)
-    seats = dilib.Prototype(
-        lambda cls, n: [cls() for _ in range(n)], seat_cls, 2
-    )
+        seat_cls = dilib.Object(Seat)
+        seats = dilib.Prototype(
+            lambda cls, n: [cls() for _ in range(n)], seat_cls, 2
+        )
 
-    car = Car(seats, engine=engine_config.engine)
+        car = Car(seats, engine=engine_config.engine)
 
 
 def test_basic_demo() -> None:

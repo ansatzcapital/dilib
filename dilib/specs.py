@@ -8,11 +8,14 @@ that mimic expected typing behavior.
 
 from __future__ import annotations
 
-from typing import Any, Callable, Generic, TypeVar, cast
+import contextlib
+from typing import Any, Callable, Generator, Generic, TypeVar, cast
 
 from typing_extensions import ParamSpec, TypeAlias, override
 
 import dilib.errors
+
+MATERIALIZE = True
 
 MISSING = object()
 MISSING_DICT: dict = dict()  # Need a special typed sentinel for mypy
@@ -295,16 +298,33 @@ def SingletonDict(  # noqa: N802
         )
 
 
-class PrototypeMixin:
-    """Helper class for Prototype to ease syntax in Config.
+@contextlib.contextmanager
+def config_context() -> Generator[None, None, None]:
+    """Enable delayed mode for `PrototypeMixin` and `SingletonMixin`.
 
-    Equivalent to dilib.Prototype(cls, ...).
+    To be used during config constructions:
+
+    ```python
+    with dilib.config_context():
+
+        class EngineConfig(dilib.Config):
+            engine = MockEngine()
+    ```
+    """
+    global MATERIALIZE
+    MATERIALIZE = False
+    yield
+    MATERIALIZE = True
+
+
+class PrototypeMixin:
+    """Helper class for `Prototype` to ease syntax in `Config`.
+
+    Equivalent to `dilib.Prototype(cls, ...)`.
     """
 
-    def __new__(
-        cls: type, *args: Any, _materialize: bool = False, **kwargs: Any
-    ) -> Any:
-        if _materialize:
+    def __new__(cls: type, *args: Any, **kwargs: Any) -> Any:
+        if MATERIALIZE:
             # noinspection PyTypeChecker
             return super().__new__(cls)  # type: ignore[misc]
         else:
@@ -312,15 +332,13 @@ class PrototypeMixin:
 
 
 class SingletonMixin:
-    """Helper class for Singleton to ease syntax in Config.
+    """Helper class for `Singleton` to ease syntax in `Config`.
 
-    Equivalent to dilib.Singleton(cls, ...).
+    Equivalent to `dilib.Singleton(cls, ...)`.
     """
 
-    def __new__(
-        cls: type, *args: Any, _materialize: bool = False, **kwargs: Any
-    ) -> Any:
-        if _materialize:
+    def __new__(cls: type, *args: Any, **kwargs: Any) -> Any:
+        if MATERIALIZE:
             # noinspection PyTypeChecker
             return super().__new__(cls)  # type: ignore[misc]
         else:
