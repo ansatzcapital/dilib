@@ -1,3 +1,5 @@
+"""Configs contain named specs and their dependencies."""
+
 from __future__ import annotations
 
 from typing import Any, Iterable, TypeVar, cast
@@ -63,12 +65,12 @@ class ConfigSpec(dilib.specs.Spec[TC]):
 
 
 class Config:
-    """Description of specs and how depend on each other.
+    """Description of specs and how they depend on each other.
 
     Config author should subclass this class and describe specs
-    like fields of a dataclass.
+    like fields of a dataclass (with optional type annotation).
 
-    Config user should use :func:`dilib.config.get_config` to instantiate.
+    Config user should use :func:`get_config` to instantiate.
 
     >>> class FooConfig(dilib.Config):
     ...     x = dilib.Object(1)
@@ -223,7 +225,7 @@ class Config:
         self._loaded = True
 
     def freeze(self) -> None:
-        """Freeze to prevent any more perturbations to this Config instance."""
+        """Prevent any more perturbations to this `Config` instance."""
         self._frozen = True
 
     def _get_spec(self, key: str) -> dilib.specs.Spec:
@@ -342,14 +344,17 @@ class ConfigLocator:
 
 
 def get_config(config_cls: type[TC], **global_inputs: Any) -> TC:
-    """Get perturbable instance of config object.
+    """Get instance of config object (that can optionally be perturbed).
 
     User is required to pass in any non-defaulted global inputs.
 
     >>> class FooConfig(dilib.Config):
     ...     x = dilib.GlobalInput(type_=int)
     ...     y = dilib.Singleton(lambda x: x + 1)
-    >>> config = dilib.get_config(EngineConfig, x=1)
+
+    >>> config = dilib.get_config(FooConfig, x=1)
     >>> container = dilib.get_container(config)
+
+    See :class:`Config`.
     """
     return config_cls().get(**global_inputs)  # type: ignore[no-any-return]

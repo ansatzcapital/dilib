@@ -1,9 +1,14 @@
-"""dilib specs.
+"""Specs are recipes of how objects should be created.
 
-NB: The dilib.{Object,Singleton,...} functions follow the same
-pattern as dataclasses.field() vs dataclasses.Field:
-in order for typing to work for the user, we have dummy functions
-that mimic expected typing behavior.
+The public functions are named like classes (e.g., :func:`Object`,
+:func:`Singleton`), while the actual specs are private classes
+with underscore prefixes. This mimics the pattern seen in
+`dataclasses.field()` func vs. `dataclass.Field` class.
+
+Note that we "trick" IDEs and static type checkers by casting
+the spec objects into whatever type they will return when instantiated
+by the container. Although a bit inelegant, this actually makes
+all the config wiring type check exactly as expected.
 """
 
 from __future__ import annotations

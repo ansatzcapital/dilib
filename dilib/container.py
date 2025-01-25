@@ -1,3 +1,5 @@
+"""Containers instantiate objects per specs set in configs."""
+
 from __future__ import annotations
 
 from typing import Any, Generic, Iterable, TypeVar, cast
@@ -41,15 +43,7 @@ class ConfigProxy(Generic[TC]):
 class Container(Generic[TC]):
     """Materializes and caches (if necessary) objects based on given config.
 
-    Construct this
-
-    >>> class FooConfig(dilib.Config):
-    ...     x = dilib.GlobalInput(type_=int)
-    ...     y = dilib.Singleton(lambda x: x + 1)
-    >>> config = dilib.get_config(EngineConfig, x=1)
-    >>> container = dilib.get_container(config)
-    >>> container.config.y
-    2
+    Config user should use :func:`get_container` to instantiate.
     """
 
     def __init__(self, config: TC) -> None:
@@ -203,5 +197,15 @@ class Container(Generic[TC]):
 
 
 def get_container(config: TC) -> Container[TC]:
-    """More type-safe alternative to creating container (for PyCharm)."""
+    """Get instance of container object, which instantiates objects per specs.
+
+    >>> class FooConfig(dilib.Config):
+    ...     x = dilib.GlobalInput(type_=int)
+    ...     y = dilib.Singleton(lambda x: x + 1)
+
+    >>> config = dilib.get_config(EngineConfig, x=1)
+    >>> container = dilib.get_container(config)
+    >>> container.config.y
+    2
+    """
     return Container(config)

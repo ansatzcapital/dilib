@@ -1,3 +1,6 @@
+"""Errors."""
+
+
 class ConfigError(RuntimeError):
     """Base class for all errors."""
 
