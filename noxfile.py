@@ -98,6 +98,7 @@ def pytest(session: nox.Session) -> None:
         session.run("pip", "list")
 
     session.run("pytest", "dilib", *session.posargs)
+    session.run("pytest", "examples", *session.posargs)
 
 
 @nox.session(tags=["lint", "static"])
