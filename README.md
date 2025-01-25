@@ -16,7 +16,7 @@ pip install dilib
 
 ## Documentation
 
-Documentation, design principles, and tips are available [here](https://github.io/ansatzcapital/dilib).
+Documentation, design principles, and patterns are available [here](https://github.io/ansatzcapital/dilib).
 
 Examples are available [here](https://github.com/ansatzcapital/dilib/tree/main/examples).
 
