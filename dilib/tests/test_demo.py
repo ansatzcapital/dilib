@@ -12,7 +12,7 @@ def get_db_value(_0: Any, _1: Any) -> bool:
     return False
 
 
-class Seat:
+class Seat(dilib.SingletonMixin):
     pass
 
 
@@ -70,15 +70,14 @@ with dilib.config_context():
 
     class EngineConfig(dilib.Config):
         db_address = dilib.GlobalInput(type_=str, default="ava-db")
-        engine = DBEngine(db_address)
+        engine: Engine = DBEngine(db_address)
 
     class CarConfig(dilib.Config):
         engine_config = EngineConfig()
 
-        seat_cls = dilib.Object(Seat)
-        seats = dilib.Prototype(
-            lambda cls, n: [cls() for _ in range(n)], seat_cls, 2
-        )
+        seat0 = Seat()
+        seat1 = Seat()
+        seats = dilib.SingletonList(seat0, seat1)
 
         car = Car(seats, engine=engine_config.engine)
 
@@ -95,7 +94,7 @@ def test_basic_demo() -> None:
 
 def test_perturb_demo() -> None:
     config = dilib.get_config(CarConfig, db_address="ava-db")
-    config.engine_config.engine = MockEngine()  # type: ignore
+    config.engine_config.engine = MockEngine()
     container = dilib.get_container(config)
 
     assert isinstance(container.config.car.engine, MockEngine)
