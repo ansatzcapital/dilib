@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import abc
+import dataclasses
 from typing import Any
 
 from typing_extensions import override
@@ -25,9 +26,9 @@ class Engine(abc.ABC):
     def start(self) -> None: ...
 
 
+@dataclasses.dataclass(frozen=True)
 class DBEngine(Engine, dilib.SingletonMixin):
-    def __init__(self, db_address: str) -> None:
-        self.db_address = db_address
+    db_address: str
 
     @property
     @override
@@ -69,7 +70,7 @@ class Car(dilib.SingletonMixin):
 with dilib.config_context():
 
     class EngineConfig(dilib.Config):
-        db_address = dilib.GlobalInput(type_=str, default="ava-db")
+        db_address = dilib.GlobalInput(type_=str, default="some-db-address")
         engine: Engine = DBEngine(db_address)
 
     class CarConfig(dilib.Config):
@@ -83,7 +84,7 @@ with dilib.config_context():
 
 
 def test_basic_demo() -> None:
-    config = dilib.get_config(CarConfig, db_address="ava-db")
+    config = dilib.get_config(CarConfig, db_address="some-db-address")
     container = dilib.get_container(config)
 
     car: Car = container.config.car
@@ -93,7 +94,7 @@ def test_basic_demo() -> None:
 
 
 def test_perturb_demo() -> None:
-    config = dilib.get_config(CarConfig, db_address="ava-db")
+    config = dilib.get_config(CarConfig, db_address="some-db-address")
     config.engine_config.engine = MockEngine()
     container = dilib.get_container(config)
 
