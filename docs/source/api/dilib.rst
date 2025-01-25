@@ -5,7 +5,7 @@ Subpackages
 -----------
 
 .. toctree::
-   :maxdepth: 0
+   :maxdepth: 4
 
    dilib.tests
 
@@ -16,6 +16,14 @@ dilib.config module
 -------------------
 
 .. automodule:: dilib.config
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+dilib.container module
+----------------------
+
+.. automodule:: dilib.container
    :members:
    :undoc-members:
    :show-inheritance:

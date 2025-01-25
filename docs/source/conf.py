@@ -37,3 +37,9 @@ source_suffix = {
 
 html_theme = 'alabaster'
 html_static_path = ['_static']
+
+html_theme_options = {
+    'collapse_navigation': True,  # Collapses navigation items
+    'navigation_depth': 2,        # Adjusts depth of sidebar links
+}
+

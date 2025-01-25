@@ -2,6 +2,6 @@ dilib
 =====
 
 .. toctree::
-   :maxdepth: 0
+   :maxdepth: 4
 
    dilib

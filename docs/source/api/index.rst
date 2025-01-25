@@ -1,3 +1,9 @@
+API Documentation
+=================
+
+..  toctree::
+    :maxdepth: 2
+
 .. automodule:: dilib.config
     :members:
 

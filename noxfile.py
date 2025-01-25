@@ -166,7 +166,7 @@ def gen_docs(session: nox.Session) -> None:
     session.run(
         "sphinx-apidoc",
         "-o",
-        "source",
+        "source/api",
         "../dilib",
         external=True,
     )
