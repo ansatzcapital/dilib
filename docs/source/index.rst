@@ -17,5 +17,5 @@ documentation for details.
    intro
    non_di_alts
    di_alts
-   tips
+   patterns
    api/index

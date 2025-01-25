@@ -1,4 +1,4 @@
-# Tips, Patterns, and FAQs
+# Patterns and FAQs
 
 ## Factories for Dynamic Objects
 
