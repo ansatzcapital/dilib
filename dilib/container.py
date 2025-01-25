@@ -12,7 +12,10 @@ TC = TypeVar("TC", bound=dilib.config.Config)
 
 
 class ConfigProxy(Generic[TC]):
-    """Read-only helper to marshal config values."""
+    """Read-only helper to marshal config values.
+
+    :meta private:
+    """
 
     def __init__(
         self, container: Container[TC], config: dilib.config.Config
@@ -36,7 +39,18 @@ class ConfigProxy(Generic[TC]):
 
 
 class Container(Generic[TC]):
-    """Materializes and caches (if necessary) objects based on given config."""
+    """Materializes and caches (if necessary) objects based on given config.
+
+    Construct this
+
+    >>> class FooConfig(dilib.Config):
+    ...     x = dilib.GlobalInput(type_=int)
+    ...     y = dilib.Singleton(lambda x: x + 1)
+    >>> config = dilib.get_config(EngineConfig, x=1)
+    >>> container = dilib.get_container(config)
+    >>> container.config.y
+    2
+    """
 
     def __init__(self, config: TC) -> None:
         if isinstance(config, dilib.config.ConfigSpec):

@@ -17,6 +17,7 @@ extensions = [
     'myst_parser',
     'sphinx.ext.autodoc',
     'sphinx.ext.githubpages',
+    'sphinx.ext.napoleon',
 ]
 
 templates_path = ['_templates']

@@ -619,3 +619,6 @@ TODO
 
 TODO
 
+### Forwarding pattern
+
+TODO

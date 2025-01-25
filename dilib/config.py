@@ -13,7 +13,10 @@ TC = TypeVar("TC", bound="Config")
 
 
 class ConfigSpec(dilib.specs.Spec[TC]):
-    """Represents nestable bag of types and values."""
+    """Represents nestable bag of types and values.
+
+    :meta private:
+    """
 
     _INTERNAL_FIELDS = dilib.specs.Spec._INTERNAL_FIELDS + [
         "cls",
@@ -60,7 +63,17 @@ class ConfigSpec(dilib.specs.Spec[TC]):
 
 
 class Config:
-    """Description of how specs depend on each other."""
+    """Description of specs and how depend on each other.
+
+    Config author should subclass this class and describe specs
+    like fields of a dataclass.
+
+    Config user should use :func:`dilib.config.get_config` to instantiate.
+
+    >>> class FooConfig(dilib.Config):
+    ...     x = dilib.Object(1)
+    ...     y = dilib.Singleton(lambda x: x + 1)
+    """
 
     _INTERNAL_FIELDS = [
         "_config_locator",
@@ -301,7 +314,10 @@ class Config:
 
 
 class ConfigLocator:
-    """Service locator to get instances of Configs by type."""
+    """Service locator to get instances of `Config` objects by type.
+
+    :meta private:
+    """
 
     def __init__(self, **global_inputs: Any) -> None:
         self.global_inputs: dict[str, Any] = global_inputs
@@ -326,5 +342,14 @@ class ConfigLocator:
 
 
 def get_config(config_cls: type[TC], **global_inputs: Any) -> TC:
-    """More type-safe alternative to getting config objs."""
+    """Get perturbable instance of config object.
+
+    User is required to pass in any non-defaulted global inputs.
+
+    >>> class FooConfig(dilib.Config):
+    ...     x = dilib.GlobalInput(type_=int)
+    ...     y = dilib.Singleton(lambda x: x + 1)
+    >>> config = dilib.get_config(EngineConfig, x=1)
+    >>> container = dilib.get_container(config)
+    """
     return config_cls().get(**global_inputs)  # type: ignore[no-any-return]

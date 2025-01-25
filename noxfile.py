@@ -155,11 +155,19 @@ def create_docs_template(session: nox.Session) -> None:
         "--ext-githubpages",
         "--extensions",
         "myst_parser",
+        "--extensions",
+        "sphinx.ext.napoleon",
     )
 
 
 @nox.session(tags=["docs"])
 def gen_docs(session: nox.Session) -> None:
     session.chdir("docs")
-    session.run("sphinx-apidoc", "-o", "source", "../dilib", external=True)
+    session.run(
+        "sphinx-apidoc",
+        "-o",
+        "source",
+        "../dilib",
+        external=True,
+    )
     session.run("make", "html", external=True)
