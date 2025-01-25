@@ -15,4 +15,7 @@ documentation for details.
    :caption: Contents:
 
    intro
+   non_di_alts
+   di_alts
+   tips
    api/index
