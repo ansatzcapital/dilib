@@ -201,9 +201,9 @@ def get_container(config: TC) -> Container[TC]:
 
     >>> class FooConfig(dilib.Config):
     ...     x = dilib.GlobalInput(type_=int)
-    ...     y = dilib.Singleton(lambda x: x + 1)
+    ...     y = dilib.Singleton(lambda x: x + 1, x=x)
 
-    >>> config = dilib.get_config(EngineConfig, x=1)
+    >>> config = dilib.get_config(FooConfig, x=1)
     >>> container = dilib.get_container(config)
     >>> container.config.y
     2

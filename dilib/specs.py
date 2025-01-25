@@ -188,7 +188,16 @@ def LocalInput(  # noqa: N802
     ...     y = dilib.LocalInput(type_=int, default=1)
 
     >>> class BarConfig(dilib.Config):
-    ...     foo_config = FooConfig("abc", 123)
+    ...     foo_config = FooConfig(x="abc", y=123)
+
+    >>> config = dilib.get_config(BarConfig)
+    >>> container = dilib.get_container(config)
+
+    >>> container.config.foo_config.x
+    'abc'
+
+    >>> container.config.foo_config.y
+    123
 
     Args:
         type_: Expected type of input, for both static and runtime check.
