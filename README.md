@@ -198,7 +198,160 @@ assert container.config.xy_dict1 == {"x": 1, "y": 2}
 assert container.config.xy_dict2 == {"x": 1, "y": 2, "z": 3}
 ```
 
-## Comparisons with Other DI Frameworks
+## Features and Comparisons with Non-DI Alternatives
+
+### Features
+
+* **Global addressibility:** `dilib` provides a way to map a unique name to an object instance.
+E.g., with Python, you can come up with a fully-qualified name of a class or symbol (just
+`module_a.module_b.SomeClass`), but the only simple solution is to use global variables
+(which lack other features of `dilib`).
+* **Delayed instantiation:** If you're describing a very large graph of objects, it's useful to
+delay instantiation such that you can create only the exact subgraph of objects required
+to fulfill the user's request on the container.
+* **Ability to perturb with self-consistency guarantee:** Delayed instantiation also
+provides a guarantee of self-consistency: if two or more objects depend on a parameter,
+and that parameter is perturbed, you almost certainly want both objects to see only
+the new value. By having a linear set of steps to take--create config, perturb config,
+create container, which freezes the config--you know that all instantiations are
+performed exactly after all perturbations have been performed.
+* **Static auto-complete and type-safety**: All attrs available on a `container.config`
+are available statically to both the IDE and any standard type checker
+(i.e., it's not just available in an IPython session dynamically).
+Likewise, all calls to `dilib.Singleton` are annotated with `ParamSpec`s,
+so static type checkers should alert you if you get arg names wrong or mismatches in types.
+* **Discourages global state:** Often, implementations of [singleton pattern](https://en.wikipedia.org/wiki/Singleton_pattern)
+come with the baggage of global state. However, with `dilib` (and DI in general),
+the lifecycle of an object is managed by the authors of the config/bindings,
+not by the downstream clients of the object. Thus, we can achieve a singleton lifecycle
+with respect to all the objects in the container without any global state.
+
+### Non-DI Alternatives
+
+`dict[str, Any]`
+
+```python
+# Engine config/container
+container["addr"] = "some-db-addr"
+container["db_engine"] = DBEngine(container["addr"])
+container["mock_engine"] = MockEngine()
+container["engine"] = container["engine_config"]["alt_engine"]
+
+# Car config/container
+container = {"engine_config": container}
+container["car_a"] = Car(container["engine_config"]["engine"])
+```
+
+`TypedDict`
+
+```python
+class EngineConfig(TypedDict):
+    addr: str
+    db_engine: DBEngine
+    mock_engine: MockEngine
+    engine: Engine
+
+
+class CarConfig(TypedDict):
+    engine_config: EngineConfig
+    car: Car
+
+
+addr = "some-db-addr"
+db_engine = DBEngine(addr)
+engine = db_engine
+engine_config = EngineConfig({
+    addr: addr,
+    db_engine: db_engine,
+    mock_engine: MockEngine(),
+    engine: engine,
+})
+car_config = CarConfig({
+    "engine_config": engine_config,
+    "car": Car(engine_config["engine"]),
+})
+```
+
+Text config (e.g., YAML)
+
+```yaml
+engine_config:
+    addr: &addr "some-db-addr"
+    db_engine: &engine
+        class: "module_a.DBEngine"
+        addr: *addr
+    mock_engine:
+        class: "module_b.MockEngine"
+    engine: *engine
+car_config:
+    car: "module_c.Car"
+    engine: *engine
+```
+
+Or one could handle references in Python code instead:
+
+```yaml
+engine_config:
+    addr: "some-db-addr"
+    db_engine:
+        class: "module_a.DBEngine"
+        addr: "ref:..addr"
+    mock_engine:
+        class: "module_b.MockEngine"
+    engine: "ref:db_engine"
+car_config:
+    car: "module_c.Car"
+    engine: "ref:..engine_config.engine"
+```
+
+`dataclasses`
+
+```python
+@dataclasses.dataclass(frozen=True)
+class EngineConfig:
+    addr: str
+    db_engine: DBEngine
+    mock_engine: MockEngine
+    engine: Engine
+
+
+@dataclasses.dataclass(frozen=True)
+class CarConfig:
+    engine_config: EngineConfig
+    car: Car
+
+
+# Essentially identical to `TypedDict` above
+```
+
+Global variables
+
+```python
+ADDR = "some-db-addr"
+DB_ENGINE = DBEngine(ADDR)
+MOCK_ENGINE = MockEngine()
+ENGINE = DB_ENGINE
+
+CAR = Car(ENGINE)
+```
+
+### Comparison with Non-DI Alternatives
+
+|Method|Global addressibility|Static auto-complete & type-safety|Delayed instantation|Self-consistent perturb|
+|-|-|-|-|-|
+|`dict[str, Any]`|✅*|❌|❌|❌|
+|`TypedDict`|✅*|✅|❌|❌|
+|Text config (e.g., YAML)|✅|❌|✅|✅|
+|`dataclasses`|✅*|✅|❌|❌|
+|Global variables|✅**|✅|❌|❌|
+|`dilib`|✅|✅|✅|✅|
+
+*One would need a simple helper that recurses down attrs one level at a time.
+E.g., something that would translate `"engine_config.engine"` to getting attr
+`"engine_config"` first, followed by `"engine"`.
+**Native Python fully-qualified name
+
+## Comparison with Other DI Frameworks
 
 ### pinject
 
