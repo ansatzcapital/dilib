@@ -16,6 +16,8 @@ TC = TypeVar("TC", bound=dilib.config.Config)
 class ConfigProxy(Generic[TC]):
     """Read-only helper to marshal config values.
 
+    See `patterns.md` for a discussion on why this was necessary.
+
     :meta private:
     """
 

@@ -15,6 +15,7 @@ documentation for details.
    :caption: Contents:
 
    intro
+   design
    non_di_alts
    di_alts
    patterns
