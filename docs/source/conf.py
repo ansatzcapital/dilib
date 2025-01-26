@@ -10,8 +10,8 @@ import dilib.version
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
 project = "dilib"
-copyright = "2025, author"  # noqa: A001
-author = "author"
+copyright = "2025, dilib"  # noqa: A001
+author = "dilib"
 
 version = dilib.version.__version__
 
@@ -47,6 +47,7 @@ myst_heading_anchors = 3
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
 
+html_title = "dilib"
 html_theme = "pydata_sphinx_theme"
 html_static_path = ["_static"]
 

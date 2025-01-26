@@ -1,4 +1,4 @@
-dilib documentation
+dilib
 ===================
 
 .. include:: ../../README.md
