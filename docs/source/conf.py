@@ -66,7 +66,7 @@ html_theme_options = {
     # Add the dropdown to the navbar
     "navbar_align": "left",
     "navbar_center": ["version-switcher", "navbar-nav"],
-    "show_version_warning_banner": True,
+    # "show_version_warning_banner": True,
     "switcher": {
         # URL to versions file
         "json_url": "_static/versions.json",
