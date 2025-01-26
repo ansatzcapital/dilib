@@ -10,7 +10,7 @@ to lazily instantiate objects. (It's also possible you don't
 have control over the class you're wiring up.)
 
 So *specs* provide a recipe of how objects should be created when
-they're retrieved
+they're retrieved without instantiating them until they're needed.
 
 ## Is there a way to have easier syntax?
 
@@ -189,5 +189,41 @@ See:
 
 ## Anti-pattern: use of container inside of library code
 
-TODO
+In general, containers should be created at the application level.
+The idea is that containers hold the universe of objects being modeled,
+giving the container user control over what's being created.
 
+Creating containers inside library code breaks that paradigm
+because the application level no longer has the ability to configure
+the system as it desires.
+
+In addition, it means that the overlapping objects in the multiple containers
+don't have references to the same objects, potentially causing
+performance issues.
+
+Finally, it breaks the idea that objects shouldn't know anything
+about the DI framework in which they're created.
+
+## Compare two systems in one process
+
+The disadvantage of keeping global caches is the process becomes
+the container for all objects, making it difficult to test two
+configurations of the same system with confidence.
+
+With `dilib` containers, however, provides an approach to guaranteeing
+isolation between two differently configured systems (assuming
+the objects being created don't access global state underneath):
+
+```python
+default_config = dilib.get_config(CarConfig)
+default_container = dilib.get_container(default_config)
+default_car = default_container.config.car
+
+alt_config = dilib.get_config(CarConfig)
+alt_config.engine_config.db_address = "some-other-db"
+alt_container = dilib.get_container(default_config)
+alt_car = alt_container.config.car
+
+# Now you have two handles to two different cars created from
+# two independent sets of params
+```
