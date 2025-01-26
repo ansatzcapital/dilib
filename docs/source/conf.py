@@ -55,4 +55,19 @@ html_theme_options = {
     "collapse_navigation": True,
     # Adjusts depth of sidebar links
     "navigation_depth": 2,
+    # See https://github.com/pydata/pydata-sphinx-theme/blob/main/docs/conf.py
+    "header_links_before_dropdown": 10,
+    # See https://fontawesome.com/
+    "icon_links": [
+        {
+            "name": "GitHub",
+            "url": "https://github.com/ansatzcapital/dilib",
+            "icon": "fa-brands fa-github",
+        },
+        {
+            "name": "PyPI",
+            "url": "https://pypi.org/project/dilib",
+            "icon": "fa-solid fa-cube",
+        },
+    ],
 }
