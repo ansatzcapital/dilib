@@ -167,6 +167,11 @@ def develop(session: nox.Session) -> None:
 
 @nox.session(tags=["docs"])
 def gen_docs(session: nox.Session) -> None:
+    if session.posargs:
+        (version,) = session.posargs
+    else:
+        version = "latest"
+
     session.chdir("docs")
 
     # Clean up generated RST and HTML files
@@ -187,13 +192,18 @@ def gen_docs(session: nox.Session) -> None:
     )
 
     # Generate sphinx output
-    session.run("sphinx-build", "source", "build/v1.0.0", "-W")
+    session.run("sphinx-build", "source", f"build/{version}", "-W")
 
 
 @nox.session(tags=["docs"])
 def run_docs(session: nox.Session) -> None:
+    if session.posargs:
+        (version,) = session.posargs
+    else:
+        version = "latest"
+
     gen_docs(session)
 
     session.chdir("build")
-    session.log("Local server: http://localhost:8000/v1.0.0")
+    session.log(f"Local server: http://localhost:8000/{version}")
     session.run("python", "-m", "http.server")

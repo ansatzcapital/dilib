@@ -13,8 +13,7 @@ project = "dilib"
 copyright = "2025, dilib"  # noqa: A001
 author = "dilib"
 
-# version = dilib.version.__version__
-version = "1.0.0"
+version = dilib.version.__version__
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
@@ -52,6 +51,11 @@ html_title = "dilib"
 html_theme = "pydata_sphinx_theme"
 html_static_path = ["_static"]
 
+if "dev" in version:
+    version_match = "dev"
+else:
+    version_match = f"v{version}"
+
 html_theme_options = {
     # Collapses navigation items
     "collapse_navigation": True,
@@ -60,12 +64,14 @@ html_theme_options = {
     # See https://github.com/pydata/pydata-sphinx-theme/blob/main/docs/conf.py
     "header_links_before_dropdown": 10,
     # Add the dropdown to the navbar
-    "navbar_end": ["version-switcher"],
+    "navbar_align": "left",
+    "navbar_center": ["version-switcher", "navbar-nav"],
+    "show_version_warning_banner": True,
     "switcher": {
         # URL to versions file
         "json_url": "_static/versions.json",
         # Current version
-        "version_match": f"v{version}",
+        "version_match": version_match,
     },
     # See https://fontawesome.com/
     "icon_links": [
