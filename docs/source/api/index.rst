@@ -4,6 +4,9 @@ API
 ..  toctree::
     :maxdepth: 2
 
+.. automodule:: dilib.specs
+    :members:
+
 .. automodule:: dilib.config
     :members:
 
@@ -11,7 +14,4 @@ API
     :members:
 
 .. automodule:: dilib.errors
-    :members:
-
-.. automodule:: dilib.specs
     :members:

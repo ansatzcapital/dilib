@@ -1,6 +1,4 @@
-# Intro
-
-## Dependency Injection
+# Intro to DI
 
 [Dependency injection](https://en.wikipedia.org/wiki/Dependency_injection)
 can be thought of as a **software engineering pattern**
@@ -15,10 +13,10 @@ The **framework** is meant to ease the inevitable boilerplate
 that occurs when following this pattern, and `dilib` is one such framework.
 
 See:
-    * [Google Clean Code Talk about Dependency Injection](https://testing.googleblog.com/2008/11/clean-code-talks-dependency-injection.html).
-    * [Martin Fowler on Dependency Injection](https://martinfowler.com/articles/injection.html)
+* [Google Clean Code Talk about Dependency Injection](https://testing.googleblog.com/2008/11/clean-code-talks-dependency-injection.html).
+* [Martin Fowler on Dependency Injection](https://martinfowler.com/articles/injection.html)
 
-### AI Recommends It
+## AI Recommends It
 
 If you ask [ChatGPT 4o](https://chatgpt.com/) a relatively simple question:
 

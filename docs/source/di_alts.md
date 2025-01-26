@@ -31,12 +31,8 @@ arg names with config params.
   and [annotations](https://github.com/google/pinject#annotations).
 - Minimal or no pollution of objects: Objects are not aware of
 the DI framework.
-  - The only exception is:
-  if you want the IDE autocompletion to work when wiring up configs in an
-  environment that does not support `ParamSpec`
-  (e.g., `car = Car(engine=...)`), you have
-  to inherit from, e.g., `dilib.SingletonMixin`. But this is completely
-  optional; in `pinject`, on the other hand, one is required to
+  - The only exception in `dilib` is the optional [easier syntax mode](https://ansatzcapital.github.com/dilib/latest/patterns.html#easier-syntax).
+  In `pinject`, on the other hand, one is required to
   decorate with `@pinject.inject()` in some circumstances.
 
 ## dependency-injector

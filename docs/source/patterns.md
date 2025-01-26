@@ -2,29 +2,59 @@
 
 ## Why do I need to wrap object instantions in specs?
 
-Ideally, the config user only ever has to instantiate the set
+Ideally, the config/container user only ever has to instantiate the set
 of objects they exactly need when calling `container.config.x`.
-It's probably suboptimal for object constructors to do a lot of expensive
-work (e.g., heavy compute, IO calls), but nonetheless, it's more performant
-to lazily instantiate objects. (It's also possible you don't
-have control over the class you're wiring up.)
+Even if you follow the generally good practice of not doing a lot of
+work in constructors with the classes you write, it's possible you
+don't have control over all the classes you're wiring up.
 
 So *specs* provide a recipe of how objects should be created when
-they're retrieved without instantiating them until they're needed.
+they're eventually retrieved, without instantiating them until they're needed.
 
-## Is there a way to have easier syntax?
+## Easier syntax
 
-```{include} ../../README.md
-:parser: myst_parser.sphinx_
-:start-after: Easier Syntax
+Some users find it tedious and unintuitive to have to describe objects
+via the explicit spec instance. E.g.:
+
+```python
+# In normal Python, you just create what you want:
+engine = MockEngine()
+
+# But in dilib, you have to wrap object instantiations in specs:
+engine = dilib.Singleton(MockEngine)
 ```
+
+So `dilib` provides a shortcut via `SingletonMixin` and `PrototypeMixin`.
+Just subclass one of these in the class you're writing:
+
+```python
+class MockEngine(dilib.SingletonMixin, Engine):
+    ...
+```
+
+And then you can use the easier syntax:
+
+```python
+with dilib.config_context():
+
+    class EngineConfig(dilib.Config):
+        mock_engine = MockEngine()
+```
+
+Be sure to use `dilib.config_context()` when creating the config class!
+
+Two major downsides to this approach are: (1) you're polluting the object
+model with references to a particular DI framework (ideally, you should
+be able to switch DI frameworks without a single change to model code),
+and (2) you're hard-wiring the spec type to the class, removing
+a degree of freedom from the config author.
 
 ## Forwarding pattern
 
 Sometimes you have different implementations of the same
 abstract base class, and you want to make it easy to switch between
 the implementations. (You can think of it like a [multiplexer
-pattern](https://en.wikipedia.org/wiki/Multiplexer)). In this case,
+pattern](https://en.wikipedia.org/wiki/Multiplexer).) In this case,
 you can use `dilib.Forward`:
 
 ```python
@@ -49,6 +79,7 @@ class Car:
 class FooConfig(dilib.Config):
     some_engine = dilib.Singleton(SomeEngine)
     another_engine = dilib.Singleton(AnotherEngine)
+
     engine: Engine = dilib.Forward(some_engine)
 
     car = dilib.Singleton(Car, engine)
@@ -72,12 +103,11 @@ assert isinstance(container.config.engine, AnotherEngine)
 ```{include} ../../README.md
 :parser: myst_parser.sphinx_
 :start-after: Perturb Config Fields with Ease
-:end-before: Easier Syntax
 ```
 
 ## When should I use type annotations?
 
-Specs automatically set the correct types of config fields, so it's
+Specs automatically inherit the correct types of spec returns, so it's
 not required to set explicitly. E.g.:
 
 ```python
@@ -99,7 +129,7 @@ from one implementation to another.
 
 For an example of how this ties into `dilib.Forward`, see [forwarding pattern](#forwarding-pattern).
 
-## Factories for Dynamic Objects
+## Factories for dynamic objects
 
 If you need to configure objects dynamically
 (e.g., check db value to resolve what type to use,
@@ -155,7 +185,7 @@ from the container:
 2. `container["x.y.z"]`
 
 But when we added type safety to `dilib`, we ran into an issue:
-there's no way to specify a "proxy" or "deref" type. That is, you
+there's no way to specify a "proxy" or "deref" type hint*. That is, you
 can't tell Python typing that `dilib.Container[T]` contains
 all the attributes of `T` plus its own (e.g., `clear()`).
 
@@ -168,7 +198,7 @@ separating current config classes into 2: config APIs/protocols and particular
 config mappings/bindings. In some ways, this would be a cleaner approach,
 but it would also be very burdensome for the config author, so we
 combine them into 1. However, if we didn't, one could imagine that this
-`config` property would be returning a config API/protocol type, hence
+`config` property would return the former config API/protocol type, hence
 the name.
 
 So now there are 3 ways to retrieve objects from containers:
@@ -183,11 +213,11 @@ in a CLI app to perform functionality generic over many config fields;
 and (3) is useful in all other contexts because it works with IDE
 auto-complete and static type checkers like `mypy` and `pyright`.
 
-See:
-* https://github.com/python/typing/issues/802
-* https://github.com/python/typing/discussions/1560
+*For further discussions about Python proxy/deref typing hinting, see:
+* [https://github.com/python/typing/issues/802](https://github.com/python/typing/issues/802)
+* [https://github.com/python/typing/discussions/1560](https://github.com/python/typing/discussions/1560)
     * Interestingly, this discussion references Rust's [`Deref`](https://doc.rust-lang.org/std/ops/trait.Deref.html)
-    as an example of what would be ideal to be able to express in Python.
+    as an example of functionality Python could adopt.
 
 ## Anti-pattern: use of container inside of library code
 
@@ -208,13 +238,13 @@ about the DI framework in which they're created.
 
 ## Compare two systems in one process
 
-The disadvantage of keeping global caches is the process becomes
+The disadvantage of using global caches is the the process becomes
 the container for all objects, making it difficult to test two
 configurations of the same system with confidence.
 
-With `dilib` containers, however, provides an approach to guaranteeing
-isolation between two differently configured systems (assuming
-the objects being created don't access global state underneath):
+With `dilib` containers, however, one can create multiple views
+of objects that are isolated from each other in the same process (assuming
+the objects being created don't access global state underneath). E.g.:
 
 ```python
 default_config = dilib.get_config(CarConfig)

@@ -8,10 +8,11 @@ dilib
    :maxdepth: 2
    :caption: Contents:
 
-   intro
+   intro_di
+   overview
    design
    non_di_alts
    di_alts
    patterns
-   Changelog <https://github.com/pydata/pydata-sphinx-theme/releases>
+   Changelog <https://github.com/ansatzcapital/dilib/releases>
    api/index

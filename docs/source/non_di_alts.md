@@ -1,14 +1,17 @@
 # Non-DI Alternatives
 
+In this document, we highlight why a user may want to favor using `dilib`
+over non-DI alternatives.
+
 ## Comparison
 
-|Method|Global addressessibility|Static auto-complete & type-safety|Delayed instantation|Self-consistent perturb|
+|Method|Global addressessibility|Static auto-complete & type safety|Delayed instantation|Self-consistent perturb|
 |-|-|-|-|-|
 |`dict[str, Any]`|*️⃣|❌|❌|❌|
-|`TypedDict`|*️⃣|✅|❌|❌|
+|`TypedDict` or `dataclasses`|*️⃣|✅|❌|❌|
 |Text config (e.g., YAML)|✅|❌|✅|✅|
-|`dataclasses`|*️⃣|✅|❌|❌|
 |Global variables|*️⃣|✅|❌|❌|
+|Nested getter functions|❌|✅|✅|❌|
 |Custom containers|*️⃣|✅|✅|*️⃣|
 |`dilib`|✅|✅|✅|✅|
 
@@ -34,7 +37,7 @@ container["car_a"] = Car(container["engine_config"]["engine"])
 Note that there's no type safety, no auto-complete, and no delayed
 instantiation.
 
-## `TypedDict`
+## `TypedDict` or `dataclasses`
 
 ```python
 class EngineConfig(TypedDict):
@@ -70,7 +73,12 @@ is unwieldy and requires thought (e.g., for `engine` to point to the
 same instance as `db_engine`, one is required to create them outside
 of the dicts).
 
+One could imagine the same setup but with `dataclasses.dataclass()`
+instead of `TypedDict`.
+
 ## Text config (e.g., YAML)
+
+With native YAML aliases:
 
 ```yaml
 engine_config:
@@ -86,7 +94,8 @@ car_config:
     engine: *engine
 ```
 
-Or one could handle references in Python code instead:
+Or one could handle aliases with custom Python instead
+(here we interpret `ref:` is a reference to another value in the config):
 
 ```yaml
 engine_config:
@@ -102,31 +111,15 @@ car_config:
     engine: "ref:..engine_config.engine"
 ```
 
-## `dataclasses`
-
-```python
-@dataclasses.dataclass(frozen=True)
-class EngineConfig:
-    address: str
-    db_engine: DBEngine
-    mock_engine: MockEngine
-    engine: Engine
-
-
-@dataclasses.dataclass(frozen=True)
-class CarConfig:
-    engine_config: EngineConfig
-    car: Car
-
-
-# Essentially identical to `TypedDict` above
-```
+You now have delayed instantation and explicit wiring of dependencies
+between objects and values, but the syntax can become unwieldy
+and you don't have auto-complete.
 
 ## Global variables
 
 ```python
-address = "some-db-address"
-DB_ENGINE = DBEngine(address)
+ADDRESS = "some-db-address"
+DB_ENGINE = DBEngine(ADDRESS)
 MOCK_ENGINE = MockEngine()
 ENGINE = DB_ENGINE
 
@@ -137,6 +130,43 @@ It's generally considered an anti-pattern to do a lot of work
 (whether expensive compute or IO calls) at import time. In addition,
 there's no way to perturb the parameters programmatically and no
 way to hold multiple views of the universe of objects in the same process.
+
+## Nested getter functions
+
+```python
+def get_engine() -> Engine:
+    return DBEngine(...)
+
+
+def get_car() -> Car:
+    engine = get_engine()
+    return Car(engine)
+```
+
+One issue with this approach is that you will probably want to cache
+the engine instance across various downstream users of it--probably
+with something like `functools.cache`. The issue then is that
+you can only have exactly 1 set of objects per process.
+
+In addition, there's no obvious way to enable perturbations.
+One approach could be to pass through parameters, but this doesn't
+scale well to hundreds of objects, each with their own parameters.
+Additionally, the config user can't introduce new implementaitons of `Engine`
+that the config author didn't know about. E.g.:
+
+```python
+@functools.cache
+def get_engine(use_mock_engine: bool) -> Engine:
+    if use_mock_engine:
+        return MockEngine()
+    return DBEngine(...)
+
+
+@functools.cache
+def get_car(use_mock_engine: bool) -> Car:
+    engine = get_engine(use_mock_engine=use_mock_engine)
+    return Car(engine)
+```
 
 ## Custom container
 
@@ -166,14 +196,15 @@ However, it would require some more work on the part of the user.
 
 First, if the containers are heavily nested, you have to worry
 about using the same container reference in all the downstream
-containers, thus creating a DI problem in a DI solution.
+containers, thus creating a DI problem for containers in a DI solution
+for objects.
 
 Second, although one could monkey-patch perturbations on the
 container objects, there's no 3-step process, so you don't have a
 guarantee that no objects have been instantiated when you
 start perturbing. (Because if you perturb after instantiating,
 you have to worry about whether the perturbed value would have created
-a different object instance than the once already created.)
+a different object instance than the one already cached.)
 
 One could imagine creating some helpers to address some of these issues:
 
