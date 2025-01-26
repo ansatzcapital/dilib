@@ -192,7 +192,9 @@ def gen_docs(session: nox.Session) -> None:
     )
 
     # Generate sphinx output
-    session.run("sphinx-build", "source", f"build/{version}", "-W")
+    session.run(
+        "sphinx-build", "source", f"build/{version}", "-W", external=True
+    )
 
 
 @nox.session(tags=["docs"])
