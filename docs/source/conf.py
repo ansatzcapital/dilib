@@ -21,7 +21,10 @@ extensions = [
 ]
 
 templates_path = ['_templates']
-exclude_patterns = []
+exclude_patterns = [
+    '**/dilib.rst',
+    '**/modules.rst',
+]
 
 language = 'en'
 
