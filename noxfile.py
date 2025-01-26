@@ -138,27 +138,31 @@ def develop(session: nox.Session) -> None:
     )
 
 
-@nox.session(tags=["docs"])
-def create_docs_template(session: nox.Session) -> None:
-    session.run(
-        "sphinx-quickstart",
-        "docs",
-        "--project",
-        "dilib",
-        "--author",
-        "author",
-        "--sep",
-        "--release",
-        "",
-        "--language",
-        "en",
-        "--ext-autodoc",
-        "--ext-githubpages",
-        "--extensions",
-        "myst_parser",
-        "--extensions",
-        "sphinx.ext.napoleon",
-    )
+# This was used originally to bootstrap the docs, but it's no longer
+# usable as we've made custom edits.
+# @nox.session(tags=["docs"])
+# def create_docs_template(session: nox.Session) -> None:
+#     session.run(
+#         "sphinx-quickstart",
+#         "docs",
+#         "--project",
+#         "dilib",
+#         "--author",
+#         "author",
+#         "--sep",
+#         "--release",
+#         "",
+#         "--language",
+#         "en",
+#         "--ext-autodoc",
+#         "--ext-githubpages",
+#         "--extensions",
+#         "myst_parser",
+#         "--extensions",
+#         "sphinx.ext.napoleon",
+#         "--extensions",
+#         "sphinx_copybutton",
+#     )
 
 
 @nox.session(tags=["docs"])
