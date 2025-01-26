@@ -13,4 +13,5 @@ dilib documentation
    non_di_alts
    di_alts
    patterns
+   Changelog <https://github.com/pydata/pydata-sphinx-theme/releases>
    api/index
