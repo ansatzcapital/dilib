@@ -1,14 +1,6 @@
 dilib package
 =============
 
-Subpackages
------------
-
-.. toctree::
-   :maxdepth: 4
-
-   dilib.tests
-
 Submodules
 ----------
 
