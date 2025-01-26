@@ -1,4 +1,4 @@
-# Patterns and FAQs
+# Patterns
 
 ## Why do I need to wrap object instantions in specs?
 

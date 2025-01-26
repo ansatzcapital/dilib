@@ -1,4 +1,4 @@
-# Design Principles
+# Design
 
 ## Static Typing
 
