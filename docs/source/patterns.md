@@ -15,6 +15,7 @@ they're retrieved without instantiating them until they're needed.
 ## Is there a way to have easier syntax?
 
 ```{include} ../../README.md
+:parser: myst_parser.sphinx_
 :start-after: Easier Syntax
 ```
 
@@ -69,6 +70,7 @@ assert isinstance(container.config.engine, AnotherEngine)
 ## How do I perturb values and objects?
 
 ```{include} ../../README.md
+:parser: myst_parser.sphinx_
 :start-after: Perturb Config Fields with Ease
 :end-before: Easier Syntax
 ```
