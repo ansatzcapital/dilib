@@ -165,6 +165,8 @@ def create_docs_template(session: nox.Session) -> None:
 def gen_docs(session: nox.Session) -> None:
     session.chdir("docs")
     session.run("rm", "-rf", "build", external=True)
+    session.run("rm", "-rf", "source/api/dilib.rst", external=True)
+    session.run("rm", "-rf", "source/api/modules.rst", external=True)
     session.run(
         "sphinx-apidoc",
         "-o",
