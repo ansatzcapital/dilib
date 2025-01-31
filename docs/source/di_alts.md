@@ -31,7 +31,7 @@ arg names with config params.
   and [annotations](https://github.com/google/pinject#annotations).
 - Minimal or no pollution of objects: Objects are not aware of
 the DI framework.
-  - The only exception in `dilib` is the optional [easier syntax mode](https://ansatzcapital.github.com/dilib/latest/patterns.html#easier-syntax).
+  - The only exception in `dilib` is the optional [easier syntax mode](https://ansatzcapital.github.io/dilib/latest/patterns.html#easier-syntax).
   In `pinject`, on the other hand, one is required to
   decorate with `@pinject.inject()` in some circumstances.
 
@@ -48,7 +48,7 @@ by not including dynamic functionality at all
 - Child configs are strongly typed instead of relying on
 `DependenciesContainer` stub
 (which enables IDE auto-complete and type checking)
-  - See https://github.com/ets-labs/python-dependency-injector/issues/774
+  - See [https://github.com/ets-labs/python-dependency-injector/issues/774](https://github.com/ets-labs/python-dependency-injector/issues/774)
 - No separation between configuration and specs: they have the same
 syntax and static typing capability
 - Easier-to-use global input configuration

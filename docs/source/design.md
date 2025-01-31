@@ -19,7 +19,7 @@ can switch DI frameworks with no changes to the objects themselves.
 
 (`dilib` offers optional mixins that violate this decision
 for users that want to favor easier syntax.
-See [Easier syntax](https://ansatzcapital.github.com/dilib/latest/patterns.html#easier-syntax).)
+See [Easier syntax](https://ansatzcapital.github.io/dilib/latest/patterns.html#easier-syntax).)
 
 ## Child Configs are Singletons by Type
 

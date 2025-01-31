@@ -213,7 +213,7 @@ in a CLI app to perform functionality generic over many config fields;
 and (3) is useful in all other contexts because it works with IDE
 auto-complete and static type checkers like `mypy` and `pyright`.
 
-*For further discussions about Python proxy/deref typing hinting, see:
+*For further discussions about Python proxy/deref type hinting, see:
 * [https://github.com/python/typing/issues/802](https://github.com/python/typing/issues/802)
 * [https://github.com/python/typing/discussions/1560](https://github.com/python/typing/discussions/1560)
     * Interestingly, this discussion references Rust's [`Deref`](https://doc.rust-lang.org/std/ops/trait.Deref.html)

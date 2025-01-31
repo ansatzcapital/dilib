@@ -15,7 +15,7 @@ by passing in the config object
 
 - `dilib.Object(obj)`: Pass-through already-instantiated object
 - `dilib.Forward(other_spec)`: Forward to a different config field
-- `dilib.Prototype(cls, *args, **kwargs)`: Instantiate a new object 
+- `dilib.Prototype(cls, *args, **kwargs)`: Instantiate a new object
 (or call the function) at each container retrieval
 - `dilib.Singleton(cls, *args, **kwargs)`: Instantiate a new object
 (or call the function) and cache object in container

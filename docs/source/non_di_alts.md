@@ -5,7 +5,7 @@ over non-DI alternatives.
 
 ## Comparison
 
-|Method|Global addressessibility|Static auto-complete & type safety|Delayed instantation|Self-consistent perturb|
+|Method|Global addressability|Static auto-complete & type safety|Delayed instantation|Self-consistent perturb|
 |-|-|-|-|-|
 |`dict[str, Any]`|*️⃣|❌|❌|❌|
 |`TypedDict` or `dataclasses`|*️⃣|✅|❌|❌|
@@ -94,8 +94,8 @@ car_config:
     engine: *engine
 ```
 
-Or one could handle aliases with custom Python instead
-(here we interpret `ref:` is a reference to another value in the config):
+Or one could handle aliases with custom config loading logic instead
+(here we interpret `ref:` as a reference to another value in the config):
 
 ```yaml
 engine_config:
@@ -118,6 +118,7 @@ and you don't have auto-complete.
 ## Global variables
 
 ```python
+# At module level
 ADDRESS = "some-db-address"
 DB_ENGINE = DBEngine(ADDRESS)
 MOCK_ENGINE = MockEngine()
@@ -238,5 +239,5 @@ in any container or its child containers
 * Expose nested attribute retrieval
 * Support global and local inputs
 
-Except, at this point, you basically have `dilib` with slightly different
-syntax.
+Except, at this point, you basically have `dilib` with slightly more
+verbose syntax.

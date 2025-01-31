@@ -1,6 +1,6 @@
 # dilib
 
-Dependency injection (DI) library for python
+Dependency injection (DI) library for Python
 
 [![PyPI version](https://badge.fury.io/py/dilib.svg)](https://badge.fury.io/py/dilib)
 [![PyPI Supported Python Versions](https://img.shields.io/pypi/pyversions/dilib.svg)](https://pypi.python.org/pypi/dilib/)
@@ -150,7 +150,7 @@ everything should pass `mypy` and `pyright` checking.
 
 ### Overview
 
-* **Global addressessibility:** `dilib` provides a way to map a
+* **Global addressability:** `dilib` provides a way to map a
 unique name to an object instance. E.g., with Python, you can come up
 with a fully-qualified name of a class or symbol
 (just `module_a.module_b.SomeClass`), but there is no natural parallel
@@ -187,7 +187,7 @@ with respect to all the objects in the container without any global state.
 * **Optionally easier syntax:** If you don't mind "polluting" your object
 model with references to the DI framework, you can opt into the easier
 syntax mode, writing `MockEngine()` instead of `dilib.Singleton(MockEngine)`.
-See [Easier syntax](https://ansatzcapital.github.com/dilib/latest/patterns.html#easier-syntax).
+See [Easier syntax](https://ansatzcapital.github.io/dilib/latest/patterns.html#easier-syntax).
 
 ### Perturb Config Fields with Ease
 
