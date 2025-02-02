@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import dataclasses
 import types
-from typing import Any, TypeVar
+from typing import Any, TypeVar, cast
 
 import pytest
 
@@ -19,7 +19,7 @@ def get_config(
     if more_type_safe:
         return dilib.get_config(config_cls, **global_inputs)
     else:
-        return config_cls().get(**global_inputs)  # type: ignore[no-any-return]
+        return cast(TC, config_cls().get(**global_inputs))
 
 
 @dataclasses.dataclass(frozen=True)

@@ -16,14 +16,13 @@ from __future__ import annotations
 import contextlib
 from typing import Any, Callable, Generator, Generic, TypeVar, cast
 
-from typing_extensions import ParamSpec, TypeAlias, override
+from typing_extensions import ParamSpec, Self, TypeAlias, override
 
 import dilib.errors
 
 MATERIALIZE = True
 
 MISSING = object()
-MISSING_DICT: dict = dict()  # Need a special typed sentinel for mypy
 
 SpecID: TypeAlias = int
 P = ParamSpec("P")
@@ -238,7 +237,7 @@ class _Callable(Spec[T]):
             # Non-type callable (e.g., function, functor)
             return self.func_or_type(*self.args, **self.kwargs)
 
-    def copy_with(self, *args: Any, **kwargs: Any) -> _Callable:
+    def copy_with(self, *args: Any, **kwargs: Any) -> Self:
         """Make a copy with replaced args.
 
         Used to replace arg specs with materialized args.
@@ -277,7 +276,9 @@ def _identity(obj: T) -> T:
     return obj
 
 
-def _union_dict_and_kwargs(values: dict, **kwargs: Any) -> dict:
+def _union_dict_and_kwargs(
+    values: dict[str, Any], **kwargs: Any
+) -> dict[str, Any]:
     new_values = values.copy()
     new_values.update(**kwargs)
     return new_values
@@ -366,9 +367,7 @@ def SingletonList(*args: T) -> list[T]:  # noqa: N802
 
 # noinspection PyPep8Naming
 def SingletonDict(  # noqa: N802
-    values: dict[Any, T] = MISSING_DICT,  # noqa
-    /,
-    **kwargs: T,
+    values: dict[Any, T] | None = None, /, **kwargs: T
 ) -> dict[Any, T]:
     """Spec to create dict with args and caching per config field.
 
@@ -382,7 +381,7 @@ def SingletonDict(  # noqa: N802
     ...     # Equivalent to:
     ...     also_values = dilib.SingletonDict({"x": x, "y": y})
     """
-    if values is MISSING_DICT:
+    if values is None:
         # Cast because the return type will act like a dict of T
         return cast("dict[Any, T]", _Singleton(dict, **kwargs))
     else:
@@ -421,10 +420,10 @@ class PrototypeMixin:
         * :func:`config_context`
     """
 
-    def __new__(cls: type, *args: Any, **kwargs: Any) -> Any:
+    def __new__(cls: type[Any], *args: Any, **kwargs: Any) -> Any:
         if MATERIALIZE:
             # noinspection PyTypeChecker
-            return super().__new__(cls)  # type: ignore[misc]
+            return super().__new__(cls)
         else:
             return Prototype(cls, *args, **kwargs)
 
@@ -439,9 +438,9 @@ class SingletonMixin:
         * :func:`config_context`
     """
 
-    def __new__(cls: type, *args: Any, **kwargs: Any) -> Any:
+    def __new__(cls: type[Any], *args: Any, **kwargs: Any) -> Any:
         if MATERIALIZE:
             # noinspection PyTypeChecker
-            return super().__new__(cls)  # type: ignore[misc]
+            return super().__new__(cls)
         else:
             return Singleton(cls, *args, **kwargs)

@@ -10,6 +10,7 @@ import dilib.config
 import dilib.specs
 import dilib.utils
 
+T = TypeVar("T")
 TC = TypeVar("TC", bound=dilib.config.Config)
 
 
@@ -71,7 +72,7 @@ class Container(Generic[TC]):
 
     # noinspection PyProtectedMember
     def _process_arg_spec(
-        self, config: dilib.config.Config, arg: dilib.specs.Spec
+        self, config: dilib.config.Config, arg: dilib.specs.Spec[Any]
     ) -> Any:
         if arg.spec_id in config._keys:
             config_key = config._keys[arg.spec_id]
@@ -111,8 +112,8 @@ class Container(Generic[TC]):
 
     # noinspection PyProtectedMember
     def _materialize_callable_spec(
-        self, config: dilib.config.Config, spec: dilib.specs._Callable
-    ) -> dilib.specs._Callable:
+        self, config: dilib.config.Config, spec: dilib.specs._Callable[Any]
+    ) -> dilib.specs._Callable[Any]:
         """Return Spec copy with materialized args/kwargs."""
         materialized_args = [
             self._process_arg(config, arg) for arg in spec.args

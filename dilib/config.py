@@ -116,7 +116,7 @@ class Config:
         # spec id -> spec key
         self._keys: dict[dilib.specs.SpecID, str] = {}
         # key -> spec
-        self._specs: dict[str, dilib.specs.Spec] = {}
+        self._specs: dict[str, dilib.specs.Spec[Any]] = {}
         # child config key -> child config
         self._child_configs: dict[str, Config] = {}
         # global input key -> spec id
@@ -159,10 +159,10 @@ class Config:
     def _process_input(
         self,
         key: str,
-        spec: dilib.specs._Input,
+        spec: dilib.specs._Input[Any],
         inputs: dict[str, Any],
         desc: str,
-    ) -> dilib.specs._Object:
+    ) -> dilib.specs._Object[Any]:
         """Convert Input spec to Object spec."""
         try:
             value = inputs[key]
@@ -228,7 +228,7 @@ class Config:
         """Prevent any more perturbations to this `Config` instance."""
         self._frozen = True
 
-    def _get_spec(self, key: str) -> dilib.specs.Spec:
+    def _get_spec(self, key: str) -> dilib.specs.Spec[Any]:
         """More type-safe alternative to get spec than attr access."""
         spec = self[key]
         if not isinstance(spec, dilib.specs.Spec):
@@ -245,13 +245,13 @@ class Config:
     # NB: Have to override getattribute instead of getattr to
     # prevent initial, class-level values from being used.
     @override
-    def __getattribute__(self, key: str) -> dilib.specs.Spec | Config:
+    def __getattribute__(self, key: str) -> Any:
         if (
             key.startswith("__")
             or key == "_INTERNAL_FIELDS"
             or key in self._INTERNAL_FIELDS
         ):
-            return super().__getattribute__(key)  # type: ignore[no-any-return]
+            return super().__getattribute__(key)
 
         try:
             if key in self._child_configs:
@@ -324,9 +324,9 @@ class ConfigLocator:
     def __init__(self, **global_inputs: Any) -> None:
         self.global_inputs: dict[str, Any] = global_inputs
 
-        self._config_cache: dict[ConfigSpec, Config] = {}
+        self._config_cache: dict[ConfigSpec[Any], Config] = {}
 
-    def get(self, config_spec: ConfigSpec) -> Config:
+    def get(self, config_spec: ConfigSpec[Any]) -> Config:
         """Get Config instance by type."""
         try:
             return self._config_cache[config_spec]
@@ -357,4 +357,4 @@ def get_config(config_cls: type[TC], **global_inputs: Any) -> TC:
 
     See :class:`Config`.
     """
-    return config_cls().get(**global_inputs)  # type: ignore[no-any-return]
+    return cast(TC, config_cls().get(**global_inputs))
