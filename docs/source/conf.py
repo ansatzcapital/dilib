@@ -4,6 +4,8 @@
 # https://www.sphinx-doc.org/en/master/usage/configuration.html
 
 # -- Path setup --------------------------------------------------------------
+from __future__ import annotations
+
 from typing import Any
 
 import dilib.version
