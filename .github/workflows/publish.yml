@@ -16,32 +16,37 @@ jobs:
   publish:
     runs-on: ubuntu-latest
 
-    strategy:
-      matrix:
-        python-version: ['3.12']
-
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
       with:
         # See https://github.com/actions/checkout/issues/261
         ref: ${{ github.event.pull_request.head.sha }}
+        # Grab entire history for setuptools_scm
         fetch-depth: 0
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v4
+
+    # See https://docs.astral.sh/uv/guides/integration/github/#setting-up-python
+    - name: Install uv and set the python version
+      uses: astral-sh/setup-uv@v5
       with:
-        python-version: ${{ matrix.python-version }}
+        python-version: '3.12'
+        # We deliberately disable the cache and don't generate a `uv.lock` file
+        # because we want to always test with the latest version of everything
+        enable-cache: false
+        # TODO: Remove once https://github.com/astral-sh/setup-uv/issues/226 is fixed
+        prune-cache: false
+
     - name: Install dependencies
-      run: |
-        python -m pip install --upgrade build twine
+      run: uv pip install -e .[build,setup]
+
     - name: Create packages
-      run: python -m build
-    - name: Run twine check
-      run: twine check dist/*
+      run: nox -s print_env && nox -s build
+
 #    - name: Publish distribution 📦 to Test PyPI
 #      uses: pypa/gh-action-pypi-publish@release/v1
 #      with:
 #        password: ${{ secrets.TEST_PYPI_API_TOKEN }}
 #        repository_url: https://test.pypi.org/legacy/
+
     - name: Publish distribution 📦 to PyPI
       if: startsWith(github.ref, 'refs/tags')
       uses: pypa/gh-action-pypi-publish@release/v1
