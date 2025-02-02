@@ -29,7 +29,7 @@ in a more composable, modular, and uniform way.
 
 The **pattern** is: when creating objects, always express what you depend on,
 and let someone else give you those dependencies. (This is sometimes
-referred to as the "Hollywood principle": "Don't call us; we'll call you.")
+referred to as the "Hollywood principle": "Don't call us; we'll call you." 😎)
 
 The **framework** is meant to ease the inevitable boilerplate
 that occurs when following this pattern, and `dilib` is one such framework.
@@ -45,10 +45,10 @@ before taking actions.
 
 The 3 steps are:
 
-1. **Prepare:** Describe the recipe of how objects are to be created and how
+1. 🥣 **Prepare:** Describe the recipe of how objects are to be created and how
 they depend on each via **specs** inside **configs**
-2. **Replace:** Optionally, perturb the configs
-3. **Create:** Create the **container**, which lazily instantiates only the
+2. 🔄 **Replace:** Optionally, perturb the configs
+3. 🔥 **Create:** Create the **container**, which lazily instantiates only the
 objects needed per user request
 
 These are the 3 major components needed for these 3 steps:
@@ -180,17 +180,17 @@ everything should pass `mypy` and `pyright` checking.
 
 ### Overview
 
-* **Global addressability:** `dilib` provides a way to map a
+* 📇 **Global addressability:** `dilib` provides a way to map a
 unique name to an object instance. E.g., with Python, you can come up
 with a fully-qualified name of a class or symbol
 (just `module_a.module_b.SomeClass`), but there is no natural parallel
 for object *instances* (without resorting to global variables).
-* **Delayed instantiation:** If you're describing a very large graph
+* ⧴ **Delayed instantiation:** If you're describing a very large graph
 of objects, it's useful to delay instantiation such that you create
 only the exact subgraph of objects required to fulfill the user's request
 on the container. It's especially important that these instantiations
 (which can have expensive compute or IO calls) not be done at import time.
-* **Ability to perturb with self-consistency guarantee:** Delayed
+* 🔄 **Ability to perturb with self-consistency guarantee:** Delayed
 instantiation also provides a guarantee of self-consistency. If two or more
 objects depend on a parameter, and that parameter is perturbed, you almost
 certainly want both objects to see only the new value. By having a linear
@@ -199,7 +199,7 @@ set of steps to take--create config, perturb config, create container
 know that all instantiations are performed exactly
 after all perturbations have been performed.
 See [below](#perturb-config-fields-with-ease).
-* **Static auto-complete and type safety**: All attrs available
+* 🛠️ **Static auto-complete and type safety**: All attrs available
 on a `container.config`, as well as specs and child configs,
 are available statically to both the IDE and
 any standard type checker like `mypy` and `pyright`.
@@ -207,7 +207,7 @@ Equivalent dynamic attrs for IPython/Jupyter sessions are also available.
 All calls to specs like `dilib.Singleton`
 are annotated with `ParamSpec`s, so static type checkers should
 alert you if you get arg names wrong or mismatches in types.
-* **Discourages global state:** Often, implementations
+* 🚫🌎 **Discourages global state:** Often, implementations
 of the [singleton pattern](https://en.wikipedia.org/wiki/Singleton_pattern)
 come with the baggage of global state. However, with `dilib`
 (and DI in general), the lifecycle of an object is managed by the
@@ -215,7 +215,7 @@ authors of the config/bindings, not by the downstream clients of the object.
 Thus, we can achieve a singleton lifecycle
 with respect to all the objects in the *container*, instead of
 with respect to all the objects in the *process*.
-* **Optionally easier syntax:** If you don't mind "polluting" your object
+* ⌨️ **Optionally easier syntax:** If you don't mind "polluting" your object
 model with references to the DI framework, you can opt into the easier
 syntax mode, writing `MockEngine()` instead of `dilib.Singleton(MockEngine)`.
 See [Easier syntax](https://ansatzcapital.github.io/dilib/latest/patterns.html#easier-syntax).
