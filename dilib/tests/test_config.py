@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import dataclasses
 import types
-from typing import Any, TypeVar
+from typing import Any, TypeVar, cast
 
 import pytest
 
@@ -19,7 +19,7 @@ def get_config(
     if more_type_safe:
         return dilib.get_config(config_cls, **global_inputs)
     else:
-        return config_cls().get(**global_inputs)  # type: ignore[no-any-return]
+        return cast(TC, config_cls().get(**global_inputs))
 
 
 @dataclasses.dataclass(frozen=True)
@@ -44,12 +44,14 @@ class PrototypeValueWrapper(dilib.PrototypeMixin, ValueWrapper):
     pass
 
 
-class BasicConfig(dilib.Config):
-    x = dilib.Object(1)
-    y: int = dilib.Prototype(lambda x, offset: x + offset, x, offset=1)
+with dilib.config_context():
 
-    foo = SingletonValueWrapper(value=x)
-    bar = PrototypeValueWrapper(value=y)
+    class BasicConfig(dilib.Config):
+        x = dilib.Object(1)
+        y: int = dilib.Prototype(lambda x, offset: x + offset, x, offset=1)
+
+        foo = SingletonValueWrapper(value=x)
+        bar = PrototypeValueWrapper(value=y)
 
 
 def test_config_spec() -> None:
@@ -110,34 +112,33 @@ def test_add_key_after_load(more_type_safe: bool) -> None:
         config.new_x = 100
 
 
-class ParentConfig0(dilib.Config):
-    basic_config = BasicConfig()
+with dilib.config_context():
 
-    baz0 = SingletonValueWrapper(basic_config.x)
+    class ParentConfig0(dilib.Config):
+        basic_config = BasicConfig()
 
+        baz0 = SingletonValueWrapper(basic_config.x)
 
-class ParentConfig1(dilib.Config):
-    basic_config = BasicConfig()
+    class ParentConfig1(dilib.Config):
+        basic_config = BasicConfig()
 
-    baz1 = SingletonValueWrapper(basic_config.x)
-    some_str1 = dilib.Object("abc")
+        baz1 = SingletonValueWrapper(basic_config.x)
+        some_str1 = dilib.Object("abc")
 
+    class GrandParentConfig(dilib.Config):
+        parent_config0 = ParentConfig0()
+        parent_config1 = ParentConfig1()
 
-class GrandParentConfig(dilib.Config):
-    parent_config0 = ParentConfig0()
-    parent_config1 = ParentConfig1()
+        foobar = SingletonValueWrapper(parent_config0.basic_config.x)
+        some_str0 = dilib.Object("hi")
 
-    foobar = SingletonValueWrapper(parent_config0.basic_config.x)
-    some_str0 = dilib.Object("hi")
+    class ErrorGrandParentConfig(dilib.Config):
+        parent_config0 = ParentConfig0()
+        parent_config1 = ParentConfig1()
 
-
-class ErrorGrandParentConfig(dilib.Config):
-    parent_config0 = ParentConfig0()
-    parent_config1 = ParentConfig1()
-
-    # This is pointing to a non-existent attr, so we will fail when
-    # trying to get foobar via the container.
-    foobar = dilib.Forward(parent_config0.non_existent_field)
+        # This is pointing to a non-existent attr, so we will fail when
+        # trying to get foobar via the container.
+        foobar = dilib.Forward(parent_config0.non_existent_field)
 
 
 @pytest.mark.parametrize("more_type_safe", [True, False])

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import abc
+import dataclasses
 from typing import Any
 
 from typing_extensions import override
@@ -12,7 +13,7 @@ def get_db_value(_0: Any, _1: Any) -> bool:
     return False
 
 
-class Seat:
+class Seat(dilib.SingletonMixin):
     pass
 
 
@@ -25,9 +26,9 @@ class Engine(abc.ABC):
     def start(self) -> None: ...
 
 
+@dataclasses.dataclass(frozen=True)
 class DBEngine(Engine, dilib.SingletonMixin):
-    def __init__(self, db_address: str) -> None:
-        self.db_address = db_address
+    db_address: str
 
     @property
     @override
@@ -66,24 +67,24 @@ class Car(dilib.SingletonMixin):
         self.state = 0
 
 
-class EngineConfig(dilib.Config):
-    db_address = dilib.GlobalInput(type_=str, default="ava-db")
-    engine = DBEngine(db_address)
+with dilib.config_context():
 
+    class EngineConfig(dilib.Config):
+        db_address = dilib.GlobalInput(type_=str, default="some-db-address")
+        engine: Engine = DBEngine(db_address)
 
-class CarConfig(dilib.Config):
-    engine_config = EngineConfig()
+    class CarConfig(dilib.Config):
+        engine_config = EngineConfig()
 
-    seat_cls = dilib.Object(Seat)
-    seats = dilib.Prototype(
-        lambda cls, n: [cls() for _ in range(n)], seat_cls, 2
-    )
+        seat0 = Seat()
+        seat1 = Seat()
+        seats = dilib.SingletonList(seat0, seat1)
 
-    car = Car(seats, engine=engine_config.engine)
+        car = Car(seats, engine=engine_config.engine)
 
 
 def test_basic_demo() -> None:
-    config = dilib.get_config(CarConfig, db_address="ava-db")
+    config = dilib.get_config(CarConfig, db_address="some-db-address")
     container = dilib.get_container(config)
 
     car: Car = container.config.car
@@ -93,8 +94,8 @@ def test_basic_demo() -> None:
 
 
 def test_perturb_demo() -> None:
-    config = dilib.get_config(CarConfig, db_address="ava-db")
-    config.engine_config.engine = MockEngine()  # type: ignore
+    config = dilib.get_config(CarConfig, db_address="some-db-address")
+    config.engine_config.engine = MockEngine()
     container = dilib.get_container(config)
 
     assert isinstance(container.config.car.engine, MockEngine)

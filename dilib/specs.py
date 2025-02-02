@@ -1,21 +1,28 @@
-"""dilib specs.
+"""Specs are recipes of how objects should be created.
 
-NB: The dilib.{Object,Singleton,...} functions follow the same
-pattern as dataclasses.field() vs dataclasses.Field:
-in order for typing to work for the user, we have dummy functions
-that mimic expected typing behavior.
+The public functions are named like classes (e.g., :func:`Object`,
+:func:`Singleton`), while the actual specs are private classes
+with underscore prefixes. This mimics the pattern seen in
+`dataclasses.field()` func vs. `dataclass.Field` class.
+
+Note that we "trick" IDEs and static type checkers by casting
+the spec objects into whatever type they will return when instantiated
+by the container. Although a bit inelegant, this actually makes
+all the config wiring type check exactly as expected.
 """
 
 from __future__ import annotations
 
-from typing import Any, Callable, Generic, TypeVar, cast
+import contextlib
+from typing import Any, Callable, Generator, Generic, TypeVar, cast
 
-from typing_extensions import ParamSpec, TypeAlias, override
+from typing_extensions import ParamSpec, Self, TypeAlias, override
 
 import dilib.errors
 
+MATERIALIZE = True
+
 MISSING = object()
-MISSING_DICT: dict = dict()  # Need a special typed sentinel for mypy
 
 SpecID: TypeAlias = int
 P = ParamSpec("P")
@@ -23,7 +30,10 @@ T = TypeVar("T")
 
 
 def instantiate(cls: type[T], *args: Any, **kwargs: Any) -> T:
-    """Instantiate obj from Spec parts."""
+    """Instantiate obj from Spec parts.
+
+    :meta private:
+    """
     try:
         if issubclass(
             cls,
@@ -39,7 +49,10 @@ def instantiate(cls: type[T], *args: Any, **kwargs: Any) -> T:
 
 
 class AttrFuture:
-    """Future representing attr access on a Spec by its spec id."""
+    """Future representing attr access on a Spec by its spec id.
+
+    :meta private:
+    """
 
     def __init__(self, root_spec_id: SpecID, attrs: list[str]) -> None:
         self.root_spec_id = root_spec_id
@@ -50,7 +63,10 @@ class AttrFuture:
 
 
 class Spec(Generic[T]):
-    """Represents delayed object to be instantiated later."""
+    """Represents delayed object to be instantiated later.
+
+    Use one of child classes when describing objects.
+    """
 
     _INTERNAL_FIELDS = ["spec_id"]
     NEXT_SPEC_ID = 0
@@ -107,6 +123,9 @@ class _Object(Spec[T]):
 def Object(obj: T) -> T:  # noqa: N802
     """Spec to pass through a fully-instantiated object.
 
+    >>> class FooConfig(dilib.Config):
+    ...     x = dilib.Object(1)
+
     Args:
         obj: Fully-instantiated object to pass through.
     """
@@ -139,6 +158,10 @@ def GlobalInput(  # noqa: N802
 ) -> T:
     """Spec to use user input passed in at config instantiation.
 
+    >>> class FooConfig(dilib.Config):
+    ...     x = dilib.GlobalInput(type_=str)
+    ...     y = dilib.GlobalInput(type_=int, default=1)
+
     Args:
         type_: Expected type of input, for both static and runtime check.
         default: Default value if no input is provided.
@@ -158,6 +181,22 @@ def LocalInput(  # noqa: N802
     type_: type[T] | None = None, default: Any = MISSING
 ) -> T:
     """Spec to use user input passed in at config declaration.
+
+    >>> class FooConfig(dilib.Config):
+    ...     x = dilib.LocalInput(type_=str)
+    ...     y = dilib.LocalInput(type_=int, default=1)
+
+    >>> class BarConfig(dilib.Config):
+    ...     foo_config = FooConfig(x="abc", y=123)
+
+    >>> config = dilib.get_config(BarConfig)
+    >>> container = dilib.get_container(config)
+
+    >>> container.config.foo_config.x
+    'abc'
+
+    >>> container.config.foo_config.y
+    123
 
     Args:
         type_: Expected type of input, for both static and runtime check.
@@ -198,7 +237,7 @@ class _Callable(Spec[T]):
             # Non-type callable (e.g., function, functor)
             return self.func_or_type(*self.args, **self.kwargs)
 
-    def copy_with(self, *args: Any, **kwargs: Any) -> _Callable:
+    def copy_with(self, *args: Any, **kwargs: Any) -> Self:
         """Make a copy with replaced args.
 
         Used to replace arg specs with materialized args.
@@ -214,7 +253,21 @@ class _Prototype(_Callable[T]):
 def Prototype(  # noqa: N802
     func_or_type: Callable[P, T], *args: P.args, **kwargs: P.kwargs
 ) -> T:
-    """Spec to call with args and no caching."""
+    """Spec to call with args and no caching.
+
+    Can be used with anything callable, including types and functions.
+
+    >>> class Foo:
+    ...     def __init__(self, x: int) -> None:
+    ...         self.x = x
+
+    >>> class FooConfig(dilib.Config):
+    ...     foo = dilib.Prototype(Foo, x=1)
+
+    >>> config = dilib.get_config(FooConfig)
+    >>> container = dilib.get_container(config)
+    >>> assert container.config.foo is not container.config.foo
+    """
     # Cast because the return type will act like a T
     return cast(T, _Prototype(func_or_type, *args, **kwargs))
 
@@ -223,7 +276,9 @@ def _identity(obj: T) -> T:
     return obj
 
 
-def _union_dict_and_kwargs(values: dict, **kwargs: Any) -> dict:
+def _union_dict_and_kwargs(
+    values: dict[str, Any], **kwargs: Any
+) -> dict[str, Any]:
     new_values = values.copy()
     new_values.update(**kwargs)
     return new_values
@@ -231,7 +286,28 @@ def _union_dict_and_kwargs(values: dict, **kwargs: Any) -> dict:
 
 # noinspection PyPep8Naming
 def Forward(obj: T) -> T:  # noqa: N802
-    """Spec to simply forward to other spec."""
+    """Spec to simply forward to other spec.
+
+    Often useful as a switch to dispatch to other specs.
+
+    >>> class FooConfig(dilib.Config):
+    ...     x0 = dilib.Object(1)
+    ...     x1 = dilib.Object(2)
+    ...     x = dilib.Forward(x0)
+
+    >>> config = dilib.get_config(FooConfig)
+    >>> container = dilib.get_container(config)
+    >>> container.config.x
+    1
+
+    The switch can be perturbed like:
+
+    >>> config = dilib.get_config(FooConfig)
+    >>> config.x = dilib.Forward(config.x1)
+    >>> container = dilib.get_container(config)
+    >>> container.config.x
+    2
+    """
     # Cast because the return type will act like a T
     return cast(T, _Prototype(_identity, obj))
 
@@ -244,47 +320,68 @@ class _Singleton(_Callable[T]):
 def Singleton(  # noqa: N802
     func_or_type: Callable[P, T], *args: P.args, **kwargs: P.kwargs
 ) -> T:
-    """Spec to call with args and caching per config field."""
+    """Spec to call with args and caching per config field.
+
+    Can be used with anything callable, including types and functions.
+
+    >>> class Foo:
+    ...     def __init__(self, x: int) -> None:
+    ...         self.x = x
+
+    >>> class FooConfig(dilib.Config):
+    ...     foo = dilib.Singleton(Foo, x=1)
+
+    >>> config = dilib.get_config(FooConfig)
+    >>> container = dilib.get_container(config)
+    >>> assert container.config.foo is container.config.foo
+    """
     # Cast because the return type will act like a T
     return cast(T, _Singleton(func_or_type, *args, **kwargs))
 
 
 # noinspection PyPep8Naming
 def SingletonTuple(*args: T) -> tuple[T]:  # noqa: N802
-    """Spec to create tuple with args and caching per config field."""
+    """Spec to create tuple with args and caching per config field.
+
+    >>> class FooConfig(dilib.Config):
+    ...     x = dilib.Object(1)
+    ...     y = dilib.Object(2)
+    ...     values = dilib.SingletonTuple(x, y)
+    """
     # Cast because the return type will act like a tuple of T
     return cast("tuple[T]", _Singleton(tuple, args))
 
 
 # noinspection PyPep8Naming
 def SingletonList(*args: T) -> list[T]:  # noqa: N802
-    """Spec to create list with args and caching per config field."""
+    """Spec to create list with args and caching per config field.
+
+    >>> class FooConfig(dilib.Config):
+    ...     x = dilib.Object(1)
+    ...     y = dilib.Object(2)
+    ...     values = dilib.SingletonList(x, y)
+    """
     # Cast because the return type will act like a list of T
     return cast("list[T]", _Singleton(list, args))
 
 
 # noinspection PyPep8Naming
 def SingletonDict(  # noqa: N802
-    values: dict[Any, T] = MISSING_DICT,  # noqa
-    /,
-    **kwargs: T,
+    values: dict[Any, T] | None = None, /, **kwargs: T
 ) -> dict[Any, T]:
     """Spec to create dict with args and caching per config field.
 
     Can specify either by pointing to a dict, passing in kwargs,
     or unioning both.
 
-    >>> import dilib
-    >>> spec0 = dilib.Object(1); spec1 = dilib.Object(2)
-    >>> dilib.SingletonDict({"x": spec0, "y": spec1}) is not None
-    True
-
-    Or, alternatively:
-
-    >>> dilib.SingletonDict(x=spec0, y=spec1) is not None
-    True
+    >>> class FooConfig(dilib.Config):
+    ...     x = dilib.Object(1)
+    ...     y = dilib.Object(2)
+    ...     values = dilib.SingletonDict(x=x, y=y)
+    ...     # Equivalent to:
+    ...     also_values = dilib.SingletonDict({"x": x, "y": y})
     """
-    if values is MISSING_DICT:
+    if values is None:
         # Cast because the return type will act like a dict of T
         return cast("dict[Any, T]", _Singleton(dict, **kwargs))
     else:
@@ -295,33 +392,55 @@ def SingletonDict(  # noqa: N802
         )
 
 
-class PrototypeMixin:
-    """Helper class for Prototype to ease syntax in Config.
+@contextlib.contextmanager
+def config_context() -> Generator[None, None, None]:
+    """Enable delayed mode for `PrototypeMixin` and `SingletonMixin`.
 
-    Equivalent to dilib.Prototype(cls, ...).
+    >>> class Foo(dilib.SingletonMixin):
+    ...     def __init__(self, x: int) -> None:
+    ...         self.x = x
+
+    >>> with dilib.config_context():
+    ...     class FooConfig(dilib.Config):
+    ...         foo = Foo(x=1)
+    """
+    global MATERIALIZE
+    MATERIALIZE = False
+    yield
+    MATERIALIZE = True
+
+
+class PrototypeMixin:
+    """Helper class for `Prototype` to ease syntax in `Config`.
+
+    Equivalent to `dilib.Prototype(cls, ...)`.
+
+    See:
+        * :class:`Prototype`
+        * :func:`config_context`
     """
 
-    def __new__(
-        cls: type, *args: Any, _materialize: bool = False, **kwargs: Any
-    ) -> Any:
-        if _materialize:
+    def __new__(cls: type[Any], *args: Any, **kwargs: Any) -> Any:
+        if MATERIALIZE:
             # noinspection PyTypeChecker
-            return super().__new__(cls)  # type: ignore[misc]
+            return super().__new__(cls)
         else:
             return Prototype(cls, *args, **kwargs)
 
 
 class SingletonMixin:
-    """Helper class for Singleton to ease syntax in Config.
+    """Helper class for `Singleton` to ease syntax in `Config`.
 
-    Equivalent to dilib.Singleton(cls, ...).
+    Equivalent to `dilib.Singleton(cls, ...)`.
+
+    See:
+        * :class:`Singleton`
+        * :func:`config_context`
     """
 
-    def __new__(
-        cls: type, *args: Any, _materialize: bool = False, **kwargs: Any
-    ) -> Any:
-        if _materialize:
+    def __new__(cls: type[Any], *args: Any, **kwargs: Any) -> Any:
+        if MATERIALIZE:
             # noinspection PyTypeChecker
-            return super().__new__(cls)  # type: ignore[misc]
+            return super().__new__(cls)
         else:
             return Singleton(cls, *args, **kwargs)

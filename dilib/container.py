@@ -1,3 +1,5 @@
+"""Containers instantiate objects per specs set in configs."""
+
 from __future__ import annotations
 
 from typing import Any, Generic, Iterable, TypeVar, cast
@@ -8,11 +10,17 @@ import dilib.config
 import dilib.specs
 import dilib.utils
 
+T = TypeVar("T")
 TC = TypeVar("TC", bound=dilib.config.Config)
 
 
 class ConfigProxy(Generic[TC]):
-    """Read-only helper to marshal config values."""
+    """Read-only helper to marshal config values.
+
+    See `patterns.md` for a discussion on why this was necessary.
+
+    :meta private:
+    """
 
     def __init__(
         self, container: Container[TC], config: dilib.config.Config
@@ -36,7 +44,10 @@ class ConfigProxy(Generic[TC]):
 
 
 class Container(Generic[TC]):
-    """Materializes and caches (if necessary) objects based on given config."""
+    """Materializes and caches (if necessary) objects based on given config.
+
+    Config user should use :func:`get_container` to instantiate.
+    """
 
     def __init__(self, config: TC) -> None:
         if isinstance(config, dilib.config.ConfigSpec):
@@ -61,7 +72,7 @@ class Container(Generic[TC]):
 
     # noinspection PyProtectedMember
     def _process_arg_spec(
-        self, config: dilib.config.Config, arg: dilib.specs.Spec
+        self, config: dilib.config.Config, arg: dilib.specs.Spec[Any]
     ) -> Any:
         if arg.spec_id in config._keys:
             config_key = config._keys[arg.spec_id]
@@ -101,8 +112,8 @@ class Container(Generic[TC]):
 
     # noinspection PyProtectedMember
     def _materialize_callable_spec(
-        self, config: dilib.config.Config, spec: dilib.specs._Callable
-    ) -> dilib.specs._Callable:
+        self, config: dilib.config.Config, spec: dilib.specs._Callable[Any]
+    ) -> dilib.specs._Callable[Any]:
         """Return Spec copy with materialized args/kwargs."""
         materialized_args = [
             self._process_arg(config, arg) for arg in spec.args
@@ -189,5 +200,15 @@ class Container(Generic[TC]):
 
 
 def get_container(config: TC) -> Container[TC]:
-    """More type-safe alternative to creating container (for PyCharm)."""
+    """Get instance of container object, which instantiates objects per specs.
+
+    >>> class FooConfig(dilib.Config):
+    ...     x = dilib.GlobalInput(type_=int)
+    ...     y = dilib.Singleton(lambda x: x + 1, x=x)
+
+    >>> config = dilib.get_config(FooConfig, x=1)
+    >>> container = dilib.get_container(config)
+    >>> container.config.y
+    2
+    """
     return Container(config)

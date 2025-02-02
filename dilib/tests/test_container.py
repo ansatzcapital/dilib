@@ -14,6 +14,7 @@ TC = TypeVar("TC", bound=dilib.Config)
 def get_container_objs(
     config: TC | type[TC], more_type_safe: bool, **global_inputs: Any
 ) -> tuple[dilib.Container[TC], TC]:
+    config_proxy: Any
     if more_type_safe:
         if not isinstance(config, dilib.Config):
             config = dilib.get_config(config, **global_inputs)
@@ -32,7 +33,7 @@ def get_container_objs(
         assert isinstance(config, dilib.Config)
         container = dilib.Container(config)
 
-        config_proxy = container  # type: ignore
+        config_proxy = container
 
     # Cast because container will act like TC
     return cast(dilib.Container[TC], container), cast(TC, config_proxy)

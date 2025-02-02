@@ -1,4 +1,3 @@
-# flake8: noqa
 from dilib.config import Config as Config
 from dilib.config import get_config as get_config
 from dilib.container import ConfigProxy as ConfigProxy
@@ -23,3 +22,4 @@ from dilib.specs import SingletonMixin as SingletonMixin
 from dilib.specs import SingletonTuple as SingletonTuple
 from dilib.specs import Spec as Spec
 from dilib.specs import SpecID as SpecID
+from dilib.specs import config_context as config_context

@@ -40,27 +40,21 @@ def test_typing() -> None:
     spec1: int = dilib.Object(2)
     spec2: str = dilib.Object("abc")
 
-    _3: int = dilib.GlobalInput(type_=int)  # noqa: F841
-    _4: str = dilib.LocalInput(type_=str)  # noqa: F841
-    _5: Sequence[str] = dilib.LocalInput(type_=Sequence[str])  # noqa: F841
+    _3: int = dilib.GlobalInput(type_=int)
+    _4: str = dilib.LocalInput(type_=str)
+    _5: Sequence[str] = dilib.LocalInput(type_=Sequence[str])
 
-    _6: BaseMultiplier = dilib.Prototype(MockMultipler)  # noqa: F841
-    _7: BaseMultiplier = dilib.Prototype(SimpleMultiplier, 100)  # noqa: F841
-    _8: BaseMultiplier = dilib.Singleton(  # noqa: F841
-        SimpleMultiplier, 100, y=3
-    )
-    _9: SimpleMultiplier = dilib.Singleton(  # noqa: F841
-        SimpleMultiplier, 100, y=3
-    )
+    _6: BaseMultiplier = dilib.Prototype(MockMultipler)
+    _7: BaseMultiplier = dilib.Prototype(SimpleMultiplier, 100)
+    _8: BaseMultiplier = dilib.Singleton(SimpleMultiplier, 100, y=3)
+    _9: SimpleMultiplier = dilib.Singleton(SimpleMultiplier, 100, y=3)
 
-    _10: Sequence = dilib.SingletonList(spec0, spec0)  # noqa: F841
-    _11: Sequence[int] = dilib.SingletonList(spec0, spec0)  # noqa: F841
-    _12: tuple = dilib.SingletonTuple(spec2, spec2)  # noqa: F841
-    # TODO: Support more narrow Tuple types
-    # _13: Tuple[str, str] = dilib.SingletonTuple(spec2, spec2)  # noqa: F841
-    _14: dict = dilib.SingletonDict(a=spec0, b=spec1)  # noqa: F841
-    _15: dict[str, int] = dilib.SingletonDict(a=spec0, b=spec1)  # noqa: F841
+    _11: Sequence[int] = dilib.SingletonList(spec0, spec0)
+    _12: tuple[str, ...] = dilib.SingletonTuple(spec2, spec2)
+    # TODO: Support more narrow `tuple` types?
+    # _13: tuple[str, str] = dilib.SingletonTuple(spec2, spec2)
+    _14: dict[str, int] = dilib.SingletonDict(a=spec0, b=spec1)
 
     # Would cause mypy error:
-    # _16: str = dilib.Singleton(add_ints, 1, "abc")  # noqa: F841
-    _16: int = dilib.Singleton(add_ints, 1, 2)  # noqa: F841
+    # _15: str = dilib.Singleton(add_ints, 1, "abc")
+    _15: int = dilib.Singleton(add_ints, 1, 2)
