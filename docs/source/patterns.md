@@ -14,7 +14,7 @@ they're eventually retrieved, without instantiating them until they're needed.
 ## Easier syntax
 
 Some users find it tedious and unintuitive to have to describe objects
-via the explicit spec instance. E.g.:
+via the spec syntax. E.g.:
 
 ```python
 # In normal Python, you just create what you want:
@@ -107,8 +107,8 @@ assert isinstance(container.config.engine, AnotherEngine)
 
 ## When should I use type annotations?
 
-Specs automatically inherit the correct types of spec returns, so it's
-not required to set explicitly. E.g.:
+Config fields automatically inherit correct types
+based on the spec return type, so it's not required to set explicitly. E.g.:
 
 ```python
 class FooConfig(dilib.Config):
@@ -229,7 +229,7 @@ Creating containers inside library code breaks that paradigm
 because the application level no longer has the ability to configure
 the system as it desires.
 
-In addition, it means that the overlapping objects in the multiple containers
+In addition, it means that the overlapping objects in multiple containers
 don't have references to the same objects, potentially causing
 performance issues.
 
@@ -238,7 +238,7 @@ about the DI framework in which they're created.
 
 ## Compare two systems in one process
 
-The disadvantage of using global caches is the the process becomes
+The disadvantage of using global caches is that the process becomes
 the container for all objects, making it difficult to test two
 configurations of the same system with confidence.
 
@@ -258,4 +258,18 @@ alt_car = alt_container.config.car
 
 # Now you have two handles to two different cars created from
 # two independent sets of params
+```
+
+## Anonymous inner specs
+
+When you want to delay the instantiation of an object, but it's only
+ever used in a single parent spec and you don't need to perturb
+this value, you can use anonymous inner specs like:
+
+```python
+class CarConfig(dilib.Config):
+    car = dilib.Singleton(
+        Car,
+        engine=dilib.Singleton(DBEngine, address="some-db-address"),
+    )
 ```

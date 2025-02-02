@@ -13,6 +13,7 @@ are DI-compatible and some are not.)
 |Text config (e.g., YAML)|✅|❌|✅|✅|
 |Global variables|*️⃣|✅|❌|❌|
 |Nested getter functions|❌|✅|✅|❌|
+|Generic container|✅|❌|✅|✅|
 |Custom containers|*️⃣|✅|✅|*️⃣|
 |`dilib`|✅|✅|✅|✅|
 
@@ -170,7 +171,40 @@ def get_car(use_mock_engine: bool) -> Car:
     return Car(engine)
 ```
 
-## Custom container
+## Generic container
+
+One could imagine creating a generic dict-like container, like:
+
+```python
+class Container:
+    def register(
+        self,
+        name: str,
+        factory: Callable[[...], Any],
+        dependencies: Sequence[str] | None = None,
+    ) -> None:
+        """Register a factory function with optional dependencies."""
+        ...
+
+    def get(self, name: str) -> Any:
+        """Instantiate and return the requested object lazily."""
+        ...
+
+
+container = Container()
+container.register("address", lambda: "some-db-address")
+container.register(
+    "db_engine", lambda addr: DBEngine(addr), dependencies=["address"]
+)
+container.register("engine", lambda engine: engine, dependencies=["engine"])
+container.register("car", lambda engine: Car(engine), dependencies=["engine"])
+```
+
+However, much like with dicts, we have no static type checking or auto-complete
+functionality here. Plus, it's unclear how downstream containers
+could use this container as a child container.
+
+## Custom containers
 
 ```python
 @dataclasses.dataclass(frozen=True)
@@ -244,4 +278,4 @@ Though, at this point, you basically have `dilib` with *slightly* more
 verbose syntax.
 
 TODO: We should consider adding an option to specify config fields
-as properties for cases where there are a lot of anonymous inner singletons.
+as properties for cases where there are a lot of [anonymous inner singletons](patterns).
