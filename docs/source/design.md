@@ -46,8 +46,8 @@ which means users can get to designing the actual object graph quicker.
 ## Scale and Config Composability
 
 It's important that configs are naturally composable: all
-configs can naturally be both root configs for certain applications and child
-configs for others.
+configs can automatically be both root configs for certain applications
+and child configs for others.
 
 For example, an application that only cares about engines would do:
 
@@ -68,6 +68,6 @@ class CarConfig(dilib.Config):
     engine_config = EngineConfig()
 ```
 
-This means that you can scale to large number of configs and objects
+This means that you can scale to a large number of configs and objects
 without building monolithic config objects. And the line between
 configs can represent different subdomains or even teams of the project.

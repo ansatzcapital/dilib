@@ -240,5 +240,8 @@ in any container or its child containers
 * Expose nested attribute retrieval
 * Support global and local inputs
 
-Except, at this point, you basically have `dilib` with slightly more
+Though, at this point, you basically have `dilib` with *slightly* more
 verbose syntax.
+
+TODO: We should consider adding an option to specify config fields
+as properties for cases where there are a lot of anonymous inner singletons.
