@@ -4,6 +4,8 @@
 # https://www.sphinx-doc.org/en/master/usage/configuration.html
 
 # -- Path setup --------------------------------------------------------------
+from typing import Any
+
 import dilib.version
 
 # -- Project information -----------------------------------------------------
@@ -86,4 +88,8 @@ html_theme_options = {
             "icon": "fa-solid fa-cube",
         },
     ],
+}
+
+html_sidebars: dict[str, Any] = {
+    "**": []  # No sidebar content for any page
 }
