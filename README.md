@@ -20,6 +20,22 @@ Documentation, design principles, and patterns are available [here](https://ansa
 
 Examples are available [here](https://github.com/ansatzcapital/dilib/tree/main/examples).
 
+## About DI
+
+[Dependency injection](https://en.wikipedia.org/wiki/Dependency_injection)
+can be thought of as a **software engineering pattern**
+as well as a **framework**. The goal is to describe and instantiate objects
+in a more composable, modular, and uniform way.
+
+The **pattern** is: when creating objects, always express what you depend on,
+and let someone else give you those dependencies. (This is sometimes
+referred to as the "Hollywood principle": "Don't call us; we'll call you.")
+
+The **framework** is meant to ease the inevitable boilerplate
+that occurs when following this pattern, and `dilib` is one such framework.
+It makes it easier to describe a large graph of dependent objects
+and then instantiate only the objects you need as you need them.
+
 ## Quick Start
 
 The framework takes a 3-step approach to configuring and instantiating objects.
@@ -44,31 +60,33 @@ include:
     for primitive config values).
     - `dilib.Prototype(cls, *args, **kwargs)`: Whenever the container
     is asked to create this object, call `cls(*args, **kwargs)`
-    each time (i.e., no caching).
-    - `dilib.Singleton(cls, *args, **kwargs)`: Same as `Prototype`
-    except the result is cached per config field (per container).
+    each time (with no caching).
+    - `dilib.Singleton(cls, *args, **kwargs)`: Same as `Prototype`,
+    except the result is cached per config field per container.
     - `dilib.Forward(other_spec)`: Forward this request to another spec.
-    - For more, see [Overview](https://ansatzcapital.github.com/dilib/latest/overview.html).
+    Think of it like a [mux](https://en.wikipedia.org/wiki/Multiplexer)
+    or control switch.
+    - For more, see [Overview](https://ansatzcapital.github.io/dilib/latest/overview.html).
 - `dilib.Config`: Configs give names to specs and also provide a
 way to describe how the specs depend on each other. Configs can nest
-and reference each other via child configs, defined in the same
+and reference each other via **child configs**, defined in the same
 syntax as specs. Configs can be arbitrarily perturbed programmatically.
 - `dilib.Container`: This is the chef, i.e., the object retriever.
 It's in charge of *materializing*/*instantiating* the aforementioned
- delayed specs that are wired together by config into actual instances
-(plus caching, in the case of `dilib.Singleton`).
+delayed specs into actual instances and caching these objects when required,
+(i.e., in the case of `dilib.Singleton`).
 
 ```python
 from __future__ import annotations
 
+import abc
 import dataclasses
-from typing import Optional
 
 import dilib
 
 
 # API
-class Engine:
+class Engine(abc.ABC):
     pass
 
 
@@ -92,12 +110,22 @@ class Car:
 
 
 class EngineConfig(dilib.Config):
+    # Glboal inputs are provided by the config **user**
     db_address = dilib.GlobalInput(str, default="some-db-address")
 
+    # Local inputs are provided by downstream config **author**
     token_prefix = dilib.LocalInput(str)
-    token = dilib.Prototype(lambda x: x + ".bar", x=token_prefix)
 
-    # Objects depend on other objects via named aliases
+    # Simple primitives must be wrapped in `Object`
+    token_suffix = dilib.Object(".bar")
+
+    # Because this lambda is wrapped in a `Prototype`, it will
+    # only be called if required. Note how specs depend on other specs
+    # explicitly via named aliases.
+    token = dilib.Prototype(lambda x, y: x + y, x=token_prefix, y=token_suffix)
+
+    # `Singleton` is very much like `Prototype`, except the container
+    # will cache this instance by the key `db_engine0`
     db_engine0 = dilib.Singleton(DBEngine, db_address, token=token)
 
     # Alternate engine spec
@@ -113,6 +141,8 @@ class CarConfig(dilib.Config):
     # depends on an `EngineConfig` (with local input value set).
     engine_config = EngineConfig(token_prefix="baz")
 
+    # The idea is to reach into child configs and get whatever objects you
+    # need from there
     car = dilib.Singleton(Car, engine_config.engine)
 
 
@@ -120,7 +150,7 @@ class CarConfig(dilib.Config):
 car_config = dilib.get_config(CarConfig, db_address="another-db-address")
 
 # Perturb here as you'd like. Note that the new object
-# doesn't need to have been set up beforehand. E.g.:
+# doesn't need to have been set up by the config author beforehand.
 car_config.engine_config.engine = dilib.Singleton(MockEngine)
 
 # Create container from config
@@ -137,8 +167,8 @@ assert container.config.car is container.car  # Because it's a Singleton
 Notes:
 
 - `Car` *takes in* an `Engine` via its constructor
-(known as "constructor injection"), instead of making or
-getting one within itself.
+(known as ["constructor injection"](https://en.wikipedia.org/wiki/Dependency_injection#Constructor_injection)),
+instead of making or getting one within itself.
 - For this to work, `Car` cannot make any assumptions about
 *what kind* of `Engine` it received. Different engines have different
 constructor params but have the [same API and semantics](https://en.wikipedia.org/wiki/Liskov_substitution_principle).
@@ -156,12 +186,12 @@ with a fully-qualified name of a class or symbol
 (just `module_a.module_b.SomeClass`), but there is no natural parallel
 for object *instances* (without resorting to global variables).
 * **Delayed instantiation:** If you're describing a very large graph
-of objects, it's useful to delay instantiation such that you can create
+of objects, it's useful to delay instantiation such that you create
 only the exact subgraph of objects required to fulfill the user's request
 on the container. It's especially important that these instantiations
 (which can have expensive compute or IO calls) not be done at import time.
 * **Ability to perturb with self-consistency guarantee:** Delayed
-instantiation also provides a guarantee of self-consistency: if two or more
+instantiation also provides a guarantee of self-consistency. If two or more
 objects depend on a parameter, and that parameter is perturbed, you almost
 certainly want both objects to see only the new value. By having a linear
 set of steps to take--create config, perturb config, create container
@@ -172,18 +202,19 @@ See [below](#perturb-config-fields-with-ease).
 * **Static auto-complete and type safety**: All attrs available
 on a `container.config`, as well as specs and child configs,
 are available statically to both the IDE and
-any standard type checker like `mypy` and `pyright`
-(i.e., it's not just available in an IPython session dynamically).
+any standard type checker like `mypy` and `pyright`.
+Equivalent dynamic attrs for IPython/Jupyter sessions are also available.
 All calls to specs like `dilib.Singleton`
 are annotated with `ParamSpec`s, so static type checkers should
 alert you if you get arg names wrong or mismatches in types.
 * **Discourages global state:** Often, implementations
-of [singleton pattern](https://en.wikipedia.org/wiki/Singleton_pattern)
+of the [singleton pattern](https://en.wikipedia.org/wiki/Singleton_pattern)
 come with the baggage of global state. However, with `dilib`
 (and DI in general), the lifecycle of an object is managed by the
 authors of the config/bindings, not by the downstream clients of the object.
 Thus, we can achieve a singleton lifecycle
-with respect to all the objects in the container without any global state.
+with respect to all the objects in the *container*, instead of
+with respect to all the objects in the *process*.
 * **Optionally easier syntax:** If you don't mind "polluting" your object
 model with references to the DI framework, you can opt into the easier
 syntax mode, writing `MockEngine()` instead of `dilib.Singleton(MockEngine)`.
@@ -205,9 +236,17 @@ def get_container(
     db_address: str = "db-address",
     perturb_func: Callable[[CarConfig], None] | None = None,
 ) -> dilib.Container[CarConfig]:
+    """Helper for users to get container instance.
+
+    This should only be called at the application level, never by
+    a function in a library.
+    """
+
     config = dilib.get_config(CarConfig, db_address=db_address)
+
     if perturb_func is not None:
         perturb_func(config)
+
     return dilib.get_container(config)
 
 
@@ -220,12 +259,12 @@ def perturb_func_b(config: CarConfig) -> None:
 
 
 # Create multiple containers for each perturbation
-ctr_a = get_container(perturb_func=perturb_func_a)
-ctr_b = get_container(perturb_func=perturb_func_b)
+container_a = get_container(perturb_func=perturb_func_a)
+container_b = get_container(perturb_func=perturb_func_b)
 
 # Get cars corresponding to each perturbation, all in the same process space.
-# No matter what object we get from `ctr_a`, it will only have been
+# No matter what object we get from `container_a`, it will only have been
 # created using objects that have seen `token = "a"` perturbation.
-car_a = ctr_a.config.car
-car_b = ctr_b.config.car
+car_a = container_a.config.car
+car_b = container_a.config.car
 ```
