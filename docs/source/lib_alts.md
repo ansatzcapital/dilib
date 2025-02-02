@@ -1,4 +1,4 @@
-# DI Library Alternatives
+# Library Alternatives
 
 As always, developers should consider carefully whether (1) DI is the
 correct pattern for their needs, whether (2) the scale of the problem
