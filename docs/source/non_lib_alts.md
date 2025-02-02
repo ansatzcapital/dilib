@@ -1,7 +1,8 @@
-# Non-DI Alternatives
+# Non-Library Alternatives
 
 In this document, we highlight why a user may want to favor using `dilib`
-over non-DI alternatives.
+over alternatives that use no or very light frameworks. (Some of these
+are DI-compatible and some are not.)
 
 ## Comparison
 

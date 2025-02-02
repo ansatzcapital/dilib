@@ -11,8 +11,8 @@ dilib
    intro_di
    overview
    design
-   non_di_alts
-   di_alts
+   non_lib_alts
+   lib_alts
    patterns
    Changelog <https://github.com/ansatzcapital/dilib/releases>
    api/index
