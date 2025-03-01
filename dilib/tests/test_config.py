@@ -194,7 +194,7 @@ def test_perturb_nested_child_config(more_type_safe: bool) -> None:
     config = get_config(GrandParentConfig, more_type_safe=more_type_safe)
 
     with pytest.raises(dilib.SetChildConfigError):
-        config.parent_config0 = ParentConfig1()  # type: ignore
+        config.parent_config0 = cast(ParentConfig0, ParentConfig1())
 
 
 class InputConfig0(dilib.Config):
