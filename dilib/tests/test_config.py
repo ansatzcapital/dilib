@@ -6,6 +6,7 @@ import types
 from typing import Any, TypeVar, cast
 
 import pytest
+from typing_extensions import assert_type
 
 import dilib
 import dilib.specs
@@ -161,6 +162,9 @@ def test_nested_config(more_type_safe: bool) -> None:
     assert id(config.parent_config0.basic_config) == id(
         config.parent_config1.basic_config
     )
+
+    assert_type(config.parent_config0.basic_config, BasicConfig)
+    assert_type(config.parent_config0.basic_config.bar, PrototypeValueWrapper)
 
 
 @pytest.mark.parametrize("more_type_safe", [True, False])
