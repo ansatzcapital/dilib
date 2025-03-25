@@ -94,15 +94,15 @@ class Config:
     ]
 
     def __new__(
-        cls, *args: Any, _materialize: bool = False, **kwargs: Any
-    ) -> Any:
+        cls: type[TC], *args: Any, _materialize: bool = False, **kwargs: Any
+    ) -> TC:
         if _materialize:
-            return super().__new__(cls)
+            return super().__new__(cls)  # pyright: ignore[reportArgumentType]
         else:
             if args:
                 raise ValueError("args must be empty")
 
-            return ConfigSpec(cls, **kwargs)
+            return ConfigSpec(cls, **kwargs)  # type: ignore[return-value]
 
     def __init__(
         self,

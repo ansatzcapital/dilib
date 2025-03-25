@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import dataclasses
 import types
-from typing import Any, TypeVar, cast
+from typing import Any, TypeVar, assert_type, cast
 
 import pytest
 
@@ -161,6 +161,9 @@ def test_nested_config(more_type_safe: bool) -> None:
     assert id(config.parent_config0.basic_config) == id(
         config.parent_config1.basic_config
     )
+
+    assert_type(config.parent_config0.basic_config, BasicConfig)
+    assert_type(config.parent_config0.basic_config.bar, PrototypeValueWrapper)
 
 
 @pytest.mark.parametrize("more_type_safe", [True, False])
