@@ -1,0 +1,55 @@
+{
+    // ------------------------------------------------
+    // General
+    // ------------------------------------------------
+    // Editor
+    "editor.rulers": [
+        79
+    ],
+    "editor.formatOnSave": true,
+    // Files
+    "files.insertFinalNewline": true,
+    "files.trimTrailingWhitespace": true,
+    // ------------------------------------------------
+    // Python
+    // ------------------------------------------------
+    // Interpreter
+    "python.defaultInterpreterPath": ".venv/bin/python",
+    // Editor
+    "[python]": {
+        "editor.defaultFormatter": "charliermarsh.ruff",
+        "editor.formatOnSave": true,
+        "editor.formatOnType": false,
+        "editor.codeActionsOnSave": {
+            "source.fixAll": "explicit",
+            "source.organizeImports": "explicit"
+        },
+    },
+    // Analysis (Pylance)
+    "python.analysis.autoFormatStrings": true,
+    "python.analysis.inlayHints.pytestParameters": true,
+    // Testing
+    "python.testing.unittestEnabled": false,
+    "python.testing.pytestEnabled": true,
+    "python.testing.pytestArgs": [
+        "-s"
+    ],
+    // Mypy
+    "mypy-type-checker.importStrategy": "fromEnvironment",
+    // Ruff
+    // See https://github.com/astral-sh/ruff/issues/6254
+    "ruff.lint.ignore": [
+        "B007",
+        "ERA001",
+        "F401",
+        "F841"
+    ],
+    "ruff.importStrategy": "fromEnvironment",
+    // ------------------------------------------------
+    // SCM
+    // ------------------------------------------------
+    // Git
+    "git.autofetch": "all",
+    "git.autofetchPeriod": 600,
+    "git.rebaseWhenSync": true,
+}
