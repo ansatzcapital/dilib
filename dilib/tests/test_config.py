@@ -3,9 +3,10 @@ from __future__ import annotations
 
 import dataclasses
 import types
-from typing import Any, TypeVar, assert_type, cast
+from typing import Any, TypeVar, cast
 
 import pytest
+from typing_extensions import assert_type
 
 import dilib
 import dilib.specs
