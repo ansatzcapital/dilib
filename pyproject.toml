@@ -32,41 +32,29 @@ classifiers = [
     "Topic :: Utilities",
 ]
 
-dependencies = [
-    "typing_extensions>=4.4.0",
-]
+dependencies = ["typing_extensions>=4.4.0"]
 
 # See https://github.com/astral-sh/uv/issues/4762#issuecomment-2207423858
 # regarding `all` trick
 [project.optional-dependencies]
-build = [
-    "build>=1.0.3",
-    "twine>=4.0.2",
-]
+build = ["build>=1.0.3", "twine>=4.0.2"]
 docs = [
     "myst-parser>=3.0.0",
     "pydata-sphinx-theme>=0.14.0",
     "sphinx>=7.0.0",
     "sphinx-copybutton>=0.5.2",
 ]
-setup = [
-    "nox>=2024.10.9",
-    "uv>=0.4.20",
-]
+setup = ["nox>=2024.10.9", "uv>=0.4.20"]
 test = [
     # Tools
     "mypy>=1.8.0",
     "pytest>=7.4.4",
     "pytest-xdist>=3.5.0",
-    "pyright>=1.1.344",
+    # TODO: Remove max version when this is released: https://github.com/microsoft/pyright/pull/10494
+    "pyright>=1.1.344,<1.1.401",
     "ruff>=0.1.8",
 ]
-all = [
-    "dilib[build]",
-    "dilib[docs]",
-    "dilib[setup]",
-    "dilib[test]",
-]
+all = ["dilib[build]", "dilib[docs]", "dilib[setup]", "dilib[test]"]
 
 [project.urls]
 "Homepage" = "https://github.com/ansatzcapital/dilib"
@@ -111,9 +99,7 @@ strict_optional = true
 warn_redundant_casts = true
 
 # See https://mypy-lang.blogspot.com/2023/08/mypy-15-released.html
-enable_error_code = [
-    "explicit-override",
-]
+enable_error_code = ["explicit-override"]
 
 disable_error_code = [
     # See https://github.com/python/mypy/issues/4717
@@ -133,11 +119,8 @@ reportUnnecessaryTypeIgnoreComment = true
 
 [tool.pytest.ini_options]
 addopts = "--doctest-modules --durations 10 -s"
-filterwarnings = [
-]
-markers = [
-    "slow",
-]
+filterwarnings = []
+markers = ["slow"]
 
 [tool.ruff]
 target-version = "py38"
@@ -166,7 +149,7 @@ exclude = [
     "dist",
     "node_modules",
     "venv",
-    "version.py"
+    "version.py",
 ]
 
 [tool.ruff.format]
@@ -202,7 +185,14 @@ select = [
 ]
 
 ignore = [
-    "D100", "D101", "D102", "D103", "D104", "D105", "D107", "D417",
+    "D100",
+    "D101",
+    "D102",
+    "D103",
+    "D104",
+    "D105",
+    "D107",
+    "D417",
     "ANN401",
 ]
 
@@ -212,7 +202,11 @@ dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
 [tool.ruff.lint.isort]
 force-sort-within-sections = true
 section-order = [
-    "future", "standard-library", "third-party", "first-party", "local-folder"
+    "future",
+    "standard-library",
+    "third-party",
+    "first-party",
+    "local-folder",
 ]
 single-line-exclusions = ["collections.abc", "typing", "typing_extensions"]
 
