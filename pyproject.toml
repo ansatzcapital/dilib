@@ -34,8 +34,6 @@ classifiers = [
 
 dependencies = ["typing_extensions>=4.4.0"]
 
-# See https://github.com/astral-sh/uv/issues/4762#issuecomment-2207423858
-# regarding `all` trick
 [project.optional-dependencies]
 build = ["build>=1.0.3", "twine>=4.0.2"]
 docs = [
@@ -54,6 +52,8 @@ test = [
     "pyright>=1.1.344,<1.1.401",
     "ruff>=0.1.8",
 ]
+# See https://github.com/astral-sh/uv/issues/4762#issuecomment-2207423858
+# regarding `all` trick
 all = ["dilib[build]", "dilib[docs]", "dilib[setup]", "dilib[test]"]
 
 [project.urls]
