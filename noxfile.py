@@ -46,23 +46,6 @@ To do an editable install into your current env:
 nox -s develop
 ```
 
-All sessions:
-
-```
-- print_env -> Print env info for debugging.
-* mypy -> Run mypy type checker.
-* pyright -> Run pyright type checker.
-* pytest -> Run pytest.
-* ruff -> Run ruff formatter and linter checks.
-- fix_ruff -> Fix some ruff formatter and linter issues.
-- build -> Build Python wheel.
-- develop -> Install local dir into activated env using editable installs.
-- gen_docs -> Generate docs outputs.
-- debug_docs -> Run local server to debug doc outputs.
-
-sessions marked with * are selected, sessions marked with - are skipped.
-```
-
 See https://nox.thea.codes/en/stable/index.html for more.
 """
 
