@@ -1,1 +1,26 @@
-{}
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            // See https://code.visualstudio.com/docs/python/debugging
+            "name": "Python: Current File",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            "justMyCode": false
+        },
+        {
+            // See https://stackoverflow.com/a/76239921
+            "name": "Python: Debug Tests",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${file}",
+            "purpose": [
+                "debug-test"
+            ],
+            "console": "integratedTerminal",
+            "justMyCode": false
+        },
+    ]
+}

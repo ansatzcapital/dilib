@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools >= 42", "setuptools_scm[toml] >= 3.4", "wheel"]
+requires = ["setuptools >= 42", "setuptools_scm[toml] >= 3.4"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -34,17 +34,20 @@ classifiers = [
 
 dependencies = ["typing_extensions>=4.4.0"]
 
-# See https://github.com/astral-sh/uv/issues/4762#issuecomment-2207423858
-# regarding `all` trick
 [project.optional-dependencies]
-build = ["build>=1.0.3", "twine>=4.0.2"]
+build = ["build>=1.0.3", "twine>=4.0.2", "wheel"]
 docs = [
     "myst-parser>=3.0.0",
     "pydata-sphinx-theme>=0.14.0",
     "sphinx>=7.0.0",
     "sphinx-copybutton>=0.5.2",
 ]
-setup = ["nox>=2024.10.9", "uv>=0.4.20"]
+setup = [
+    "nox>=2024.10.9",
+    "setuptools >= 42",
+    "setuptools_scm[toml] >= 3.4",
+    "uv>=0.4.20",
+]
 test = [
     # Tools
     "mypy>=1.8.0",
@@ -54,6 +57,8 @@ test = [
     "pyright>=1.1.344,<1.1.401",
     "ruff>=0.1.8",
 ]
+# See https://github.com/astral-sh/uv/issues/4762#issuecomment-2207423858
+# regarding `all` trick
 all = ["dilib[build]", "dilib[docs]", "dilib[setup]", "dilib[test]"]
 
 [project.urls]

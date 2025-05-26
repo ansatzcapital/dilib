@@ -27,7 +27,6 @@
     },
     // Analysis (Pylance)
     "python.analysis.autoFormatStrings": true,
-    "python.analysis.inlayHints.pytestParameters": true,
     // Testing
     "python.testing.unittestEnabled": false,
     "python.testing.pytestEnabled": true,
