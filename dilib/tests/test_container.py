@@ -36,7 +36,7 @@ def get_container_objs(
         config_proxy = container
 
     # Cast because container will act like TC
-    return cast(dilib.Container[TC], container), cast(TC, config_proxy)
+    return container, cast(TC, config_proxy)
 
 
 @pytest.mark.parametrize("more_type_safe", [True, False])
