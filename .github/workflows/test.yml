@@ -47,6 +47,14 @@ jobs:
 
       - name: Test with nox
         run: nox -s print_env && nox
+        if: ${{ (matrix.python-version != '3.8') }}
+
+      # We want to keep python3.8 support for a little while longer, but
+      # the latest version of mypy for it is too old, so we only
+      # run pytest here.
+      - name: Test with nox (python3.8)
+        run: nox -s print_env && nox -s pytest
+        if: ${{ (matrix.python-version == '3.8') }}
 
   # Test building and publishing
   # See:
