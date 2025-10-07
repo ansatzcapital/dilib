@@ -1,7 +1,3 @@
-# See:
-#  - https://packaging.python.org/en/latest/guides/publishing-package-distribution-releases-using-github-actions-ci-cd-workflows/
-#  - https://packaging.python.org/en/latest/tutorials/packaging-projects/
-#  - https://www.seanh.cc/2022/05/21/publishing-python-packages-from-github-actions/
 name: Publish
 
 on:
@@ -12,34 +8,33 @@ permissions:
   contents: read
 
 jobs:
-  # Build and publish to PyPI
+  # See:
+  #  - https://packaging.python.org/en/latest/guides/publishing-package-distribution-releases-using-github-actions-ci-cd-workflows/
+  #  - https://packaging.python.org/en/latest/tutorials/packaging-projects/
+  #  - https://www.seanh.cc/2022/05/21/publishing-python-packages-from-github-actions/
   publish:
     runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v4
         with:
-          # See https://github.com/actions/checkout/issues/261
+          # See https://github.com/actions/checkout/issues/261.
           ref: ${{ github.event.pull_request.head.sha }}
-          # Grab entire history for setuptools_scm
+          # Grab entire history for VCS-based version.
           fetch-depth: 0
 
-      # See https://docs.astral.sh/uv/guides/integration/github/#setting-up-python
-      - name: Install uv and set the Python version
-        uses: astral-sh/setup-uv@v5
+      # See https://github.com/prefix-dev/setup-pixi.
+      - name: Set up Pixi
+        uses: prefix-dev/setup-pixi@v0.8.12
         with:
-          python-version: "3.12"
-          # We deliberately disable the cache and don't generate a `uv.lock` file
-          # because we want to always test with the latest version of everything
-          enable-cache: false
-          # TODO: Remove once https://github.com/astral-sh/setup-uv/issues/226 is fixed
-          prune-cache: false
-
-      - name: Install dependencies
-        run: uv pip install -e .[build,setup]
+          pixi-version: v0.54.2
+          environments: dev
+          # We deliberately disable the cache and don't generate a lockfile
+          # because we always want to use latest versions in CI.
+          cache: false
 
       - name: Create packages
-        run: nox -s print_env && nox -s build
+        run: pixi run -e dev --frozen --locked build
 
       #    - name: Publish distribution 📦 to Test PyPI
       #      uses: pypa/gh-action-pypi-publish@release/v1

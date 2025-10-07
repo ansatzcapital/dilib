@@ -3,17 +3,22 @@
 ## Env
 
 ```bash
-uv sync --extra all && . .venv/bin/activate
+./scripts/act_dev.sh
 ```
 
-If you want to use different versions:
+Equivalently:
 
 ```bash
-uv venv .venv_py312 --python 3.12 && . .venv_py312/bin/activate
+pixi shell -e dev
 ```
 
-You can also force set Python versions in Nox:
+We recommend using [Pixi](https://pixi.sh/latest/) to be able to
+easily run tests (including `test-matrix` across Python versions), but
+you can also use [uv](https://docs.astral.sh/uv/) to set up your env:
 
 ```bash
-nox -P 3.12
+uv sync --all-extras --group dev && . .venv/bin/activate
+
+# Or to approximately mirror Pixi's method of starting a new shell:
+uv sync --all-extras --group dev && bash --rcfile <(echo 'source ~/.bashrc; . .venv/bin/activate')
 ```

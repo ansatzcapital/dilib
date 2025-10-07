@@ -176,7 +176,7 @@ class Config:
 
         dilib.utils.check_type(value, spec.type_, desc=desc)
 
-        # Preserve old spec id
+        # Preserve old spec id.
         return dilib.specs._Object(value, spec_id=spec.spec_id)
 
     def _load(self, **local_inputs: Any) -> None:
@@ -191,7 +191,7 @@ class Config:
 
             spec = getattr(self.__class__, key)
 
-            # Skip partial kwargs (no registration needed)
+            # Skip partial kwargs (no registration needed).
             if isinstance(spec, dict):
                 continue
 
@@ -200,10 +200,10 @@ class Config:
                     f"Expected Spec type, got {type(spec)} with {key!r}"
                 )
 
-            # Register key
+            # Register key.
             self._keys[spec.spec_id] = key
 
-            # Handle inputs
+            # Handle inputs.
             # noinspection PyProtectedMember
             if isinstance(spec, dilib.specs._GlobalInput):
                 self._global_inputs[key] = spec.spec_id
@@ -211,7 +211,7 @@ class Config:
                 spec = self._process_input(
                     key, spec, self._config_locator.global_inputs, "Global"
                 )
-            # noinspection PyProtectedMember
+            # noinspection PyProtectedMember.
             elif isinstance(spec, dilib.specs._LocalInput):
                 spec = self._process_input(key, spec, local_inputs, "Local")
 
@@ -242,7 +242,7 @@ class Config:
             raise TypeError(type(child_config))
         return child_config
 
-    # NB: Have to override getattribute instead of getattr to
+    # NB: Have to override `getattribute` instead of `getattr` to
     # prevent initial, class-level values from being used.
     @override
     def __getattribute__(self, key: str) -> Any:
@@ -296,13 +296,13 @@ class Config:
 
         old_spec = self._specs[key]
 
-        # Automatically wrap input if user hasn't done so
+        # Automatically wrap input if user hasn't done so.
         if not isinstance(value, dilib.specs.Spec):
             value = dilib.specs.Object(value)
 
         self._specs[key] = value
 
-        # Transfer old spec id
+        # Transfer old spec id.
         value.spec_id = old_spec.spec_id
 
     def __setitem__(self, key: str, value: Any) -> None:
