@@ -69,7 +69,7 @@ jobs:
           cache: false
 
       - name: Create packages
-        run: pixi run -e dev --frozen --locked build
+        run: pixi run -e dev --frozen --locked just build
 
   # Test generating docs.
   docs-test:
@@ -94,4 +94,4 @@ jobs:
           cache: false
 
       - name: Generate latest docs
-        run: pixi run -e dev --frozen --locked gen-docs
+        run: pixi run -e dev --frozen --locked just gen-docs
