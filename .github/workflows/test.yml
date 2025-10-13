@@ -44,7 +44,7 @@ jobs:
           cache: false
 
       - name: Run checks and unit tests
-        run: pixi run -e test-py${{ env.CLEAN_PYTHON_VERSION }} --frozen --locked test
+        run: pixi run -e test-py${{ env.CLEAN_PYTHON_VERSION }} --frozen --locked just test
 
   # Test building.
   build-test:
