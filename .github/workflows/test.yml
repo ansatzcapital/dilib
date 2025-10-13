@@ -27,6 +27,7 @@ jobs:
 
     steps:
       - name: Clean inputs
+        shell: bash
         run: |
           echo "CLEAN_PYTHON_VERSION=$(echo ${{ matrix.python-version }} | tr -d '.')" >> "${GITHUB_ENV}"
 
