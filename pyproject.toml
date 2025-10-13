@@ -59,18 +59,24 @@ docs = [
     "sphinx>=7.0.0",
     "sphinx-copybutton>=0.5.2",
 ]
-test = [
+# Collapse to `test` when https://github.com/prefix-dev/pixi/pull/4729
+# is released.
+test-common = [
     "mypy>=1.14.0,<1.15",
     "pytest>=7.4.4",
     "pytest-xdist>=3.5.0",
     "pyright>=1.1.406,<1.1.407",
     "ruff>=0.1.8",
 ]
+test = [
+    { include-group = "common" },
+    { include-group = "test-common" },
+]
 dev = [
     { include-group = "common" },
     { include-group = "build" },
     { include-group = "docs" },
-    { include-group = "test" },
+    { include-group = "test-common" },
 ]
 
 [tool.hatch.version]
