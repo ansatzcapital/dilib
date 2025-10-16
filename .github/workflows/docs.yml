@@ -45,7 +45,7 @@ jobs:
           cache: false
 
       - name: Generate latest docs
-        run: pixi run -e dev --frozen --locked gen-docs
+        run: pixi run -e dev --frozen --locked just gen-docs
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
