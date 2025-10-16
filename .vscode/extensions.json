@@ -2,11 +2,14 @@
     // See https://go.microsoft.com/fwlink/?LinkId=827846
     // for the documentation about the extensions.json format
     "recommendations": [
+        "EditorConfig.EditorConfig",
         "charliermarsh.ruff",
         "eamodio.gitlens",
         "mhutchie.git-graph",
         "ms-python.mypy-type-checker",
         "ms-python.python",
+        "redhat.vscode-yaml",
+        "skellock.just",
         "tamasfe.even-better-toml",
         "timonwong.shellcheck",
     ]

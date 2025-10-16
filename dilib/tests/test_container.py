@@ -35,8 +35,8 @@ def get_container_objs(
 
         config_proxy = container
 
-    # Cast because container will act like TC
-    return container, cast(TC, config_proxy)
+    # Cast because container will act like `TC`.
+    return cast(dilib.Container[TC], container), cast(TC, config_proxy)
 
 
 @pytest.mark.parametrize("more_type_safe", [True, False])
@@ -52,8 +52,8 @@ def test_basic(more_type_safe: bool) -> None:
     assert isinstance(config_proxy.bar, test_config.PrototypeValueWrapper)
     assert config_proxy.bar.value == 2
 
-    assert config_proxy.foo is config_proxy.foo  # foo is a Singleton
-    assert config_proxy.bar is not config_proxy.bar  # foo is a Prototype
+    assert config_proxy.foo is config_proxy.foo  # `foo` is a `Singleton`
+    assert config_proxy.bar is not config_proxy.bar  # `foo` is a `Prototype`
 
 
 @pytest.mark.parametrize("more_type_safe", [True, False])

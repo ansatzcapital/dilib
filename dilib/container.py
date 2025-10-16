@@ -59,7 +59,7 @@ class Container(Generic[TC]):
         self._config = config
 
         # Once we pass a config to a container, we can no longer
-        # perturb it (as this would require updating container caches)
+        # perturb it (as this would require updating container caches).
         self._config.freeze()
 
         self._instance_cache: dict[str | int, Any] = {}
@@ -67,7 +67,7 @@ class Container(Generic[TC]):
     @property
     def config(self) -> TC:
         """More type-safe alternative to attr access."""
-        # Cast because ConfigProxy[TC] will act like TC
+        # Cast because `ConfigProxy[TC]` will act like `TC`.
         return cast(TC, ConfigProxy(self, self._config))
 
     # noinspection PyProtectedMember
@@ -78,7 +78,7 @@ class Container(Generic[TC]):
             config_key = config._keys[arg.spec_id]
             result = self._get(config, config_key)
         elif isinstance(arg, dilib.specs._Callable):
-            # Anonymous prototype or singleton
+            # Anonymous prototype or singleton.
             result = self._materialize_callable_spec(config, arg).instantiate()
         elif isinstance(arg, dilib.specs._Object):
             return arg.obj

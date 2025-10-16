@@ -12,107 +12,87 @@ permissions:
   contents: read
 
 jobs:
-  # Run tests, linters, and checkers via nox
+  # Run checks, unit tests, and integration tests.
   test:
-    runs-on: ${{ matrix.platform }}
+    runs-on: ${{ matrix.os }}
 
     strategy:
       fail-fast: false
       matrix:
-        # See https://help.github.com/articles/virtual-environments-for-github-actions
-        platform:
+        os:
           - ubuntu-latest
           - macos-latest
           - windows-latest
-        python-version:
-          ["3.8", "3.9", "3.10", "3.11", "3.12", "3.13", "pypy-3.10"]
+        python-version: ["3.8", "3.9", "3.10", "3.11", "3.12", "3.13", "3.14"]
 
     steps:
+      - name: Clean inputs
+        shell: bash
+        run: |
+          echo "CLEAN_PYTHON_VERSION=$(echo ${{ matrix.python-version }} | tr -d '.')" >> "${GITHUB_ENV}"
+
       - name: Check out code
         uses: actions/checkout@v4
 
-      # See https://docs.astral.sh/uv/guides/integration/github/#setting-up-python
-      - name: Install uv and set the Python version
-        uses: astral-sh/setup-uv@v5
+      # See https://github.com/prefix-dev/setup-pixi.
+      - name: Set up Pixi
+        uses: prefix-dev/setup-pixi@v0.8.12
         with:
-          python-version: ${{ matrix.python-version }}
-          # We deliberately disable the cache and don't generate a `uv.lock` file
-          # because we want to always test with the latest version of everything
-          enable-cache: false
-          # TODO: Remove once https://github.com/astral-sh/setup-uv/issues/226 is fixed
-          prune-cache: false
+          pixi-version: v0.54.2
+          environments: test-py${{ env.CLEAN_PYTHON_VERSION }}
+          # We deliberately disable the cache and don't generate a lockfile
+          # because we always want to use latest versions in CI.
+          cache: false
 
-      - name: Install dependencies
-        run: uv pip install -e .[setup]
+      - name: Run checks and unit tests
+        run: pixi run -e test-py${{ env.CLEAN_PYTHON_VERSION }} --frozen --locked just test
 
-      - name: Test with nox
-        run: nox -s print_env && nox
-        if: ${{ (matrix.python-version != '3.8') }}
-
-      # We want to keep python3.8 support for a little while longer, but
-      # the latest version of mypy for it is too old, so we only
-      # run pytest here.
-      - name: Test with nox (python3.8)
-        run: nox -s print_env && nox -s pytest
-        if: ${{ (matrix.python-version == '3.8') }}
-
-  # Test building and publishing
-  # See:
-  #  - https://packaging.python.org/en/latest/guides/publishing-package-distribution-releases-using-github-actions-ci-cd-workflows/
-  #  - https://packaging.python.org/en/latest/tutorials/packaging-projects/
-  #  - https://www.seanh.cc/2022/05/21/publishing-python-packages-from-github-actions/
-  publish-test:
+  # Test building.
+  build-test:
     runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v4
         with:
-          # See https://github.com/actions/checkout/issues/261
+          # See https://github.com/actions/checkout/issues/261.
           ref: ${{ github.event.pull_request.head.sha }}
-          # Grab entire history for setuptools_scm
+          # Grab entire history for VCS-based version.
           fetch-depth: 0
 
-      # See https://docs.astral.sh/uv/guides/integration/github/#setting-up-python
-      - name: Install uv and set the python version
-        uses: astral-sh/setup-uv@v5
+      # See https://github.com/prefix-dev/setup-pixi.
+      - name: Set up Pixi
+        uses: prefix-dev/setup-pixi@v0.8.12
         with:
-          python-version: "3.12"
-          # We deliberately disable the cache and don't generate a `uv.lock` file
-          # because we want to always test with the latest version of everything
-          enable-cache: false
-          # TODO: Remove once https://github.com/astral-sh/setup-uv/issues/226 is fixed
-          prune-cache: false
-
-      - name: Install dependencies
-        run: uv pip install -e .[build,setup]
+          pixi-version: v0.54.2
+          environments: dev
+          # We deliberately disable the cache and don't generate a lockfile
+          # because we always want to use latest versions in CI.
+          cache: false
 
       - name: Create packages
-        run: nox -s print_env && nox -s build
+        run: pixi run -e dev --frozen --locked just build
 
+  # Test generating docs.
   docs-test:
     runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v4
         with:
-          # See https://github.com/actions/checkout/issues/261
+          # See https://github.com/actions/checkout/issues/261.
           ref: ${{ github.event.pull_request.head.sha }}
-          # Grab entire history for setuptools_scm
+          # Grab entire history for VCS-based version.
           fetch-depth: 0
 
-      # See https://docs.astral.sh/uv/guides/integration/github/#setting-up-python
-      - name: Install uv and set the python version
-        uses: astral-sh/setup-uv@v5
+      # See https://github.com/prefix-dev/setup-pixi.
+      - name: Set up Pixi
+        uses: prefix-dev/setup-pixi@v0.8.12
         with:
-          python-version: "3.12"
-          # We deliberately disable the cache and don't generate a `uv.lock` file
-          # because we want to always test with the latest version of everything
-          enable-cache: false
-          # TODO: Remove once https://github.com/astral-sh/setup-uv/issues/226 is fixed
-          prune-cache: false
-
-      - name: Install dependencies
-        run: uv pip install -e ".[docs,setup]"
+          pixi-version: v0.54.2
+          environments: dev
+          # We deliberately disable the cache and don't generate a lockfile
+          # because we always want to use latest versions in CI.
+          cache: false
 
       - name: Generate latest docs
-        run: nox -s print_env && nox -s gen_docs -- latest
+        run: pixi run -e dev --frozen --locked just gen-docs

@@ -90,7 +90,7 @@ def test_perturb_basic(more_type_safe: bool) -> None:
     assert spec_x.obj == 2
 
     # Note that there are no class-level interactions, so if we
-    # create a new instance, it doesn't have prior perturbations
+    # create a new instance, it doesn't have prior perturbations.
     config1 = dilib.get_config(BasicConfig)
 
     assert config1._get_spec("x").obj == 1
@@ -317,7 +317,7 @@ def test_extra_global_inputs() -> None:
 class InputConfigWithCollision(dilib.Config):
     input_config0 = InputConfig0(x=1)
 
-    # "name" collides with input_config0.name
+    # NB: `name` collides with `input_config0.name`.
     name = dilib.GlobalInput(str)
 
 

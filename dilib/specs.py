@@ -102,7 +102,7 @@ class Spec(Generic[T]):
 
     @classmethod
     def _get_next_spec_id(cls) -> SpecID:
-        # NB: Need to use Spec explicitly to ensure all Spec
+        # NB: Need to use `Spec` explicitly to ensure all `Spec`
         # subclasses share the same spec id space.
         result = Spec.NEXT_SPEC_ID
         Spec.NEXT_SPEC_ID += 1
@@ -202,7 +202,7 @@ def LocalInput(  # noqa: N802
         type_: Expected type of input, for both static and runtime check.
         default: Default value if no input is provided.
     """
-    # Cast because the return type will act like a T
+    # Cast because the return type will act like a `T`.
     return cast(T, _LocalInput(type_=type_, default=default))
 
 
@@ -234,7 +234,7 @@ class _Callable(Spec[T]):
             # noinspection PyTypeChecker
             return instantiate(self.func_or_type, *self.args, **self.kwargs)
         else:
-            # Non-type callable (e.g., function, functor)
+            # Non-type callable (e.g., function, functor).
             return self.func_or_type(*self.args, **self.kwargs)
 
     def copy_with(self, *args: Any, **kwargs: Any) -> Self:
@@ -268,7 +268,7 @@ def Prototype(  # noqa: N802
     >>> container = dilib.get_container(config)
     >>> assert container.config.foo is not container.config.foo
     """
-    # Cast because the return type will act like a T
+    # Cast because the return type will act like a `T`.
     return cast(T, _Prototype(func_or_type, *args, **kwargs))
 
 
@@ -308,7 +308,7 @@ def Forward(obj: T) -> T:  # noqa: N802
     >>> container.config.x
     2
     """
-    # Cast because the return type will act like a T
+    # Cast because the return type will act like a `T`.
     return cast(T, _Prototype(_identity, obj))
 
 
@@ -335,7 +335,7 @@ def Singleton(  # noqa: N802
     >>> container = dilib.get_container(config)
     >>> assert container.config.foo is container.config.foo
     """
-    # Cast because the return type will act like a T
+    # Cast because the return type will act like a `T`.
     return cast(T, _Singleton(func_or_type, *args, **kwargs))
 
 
@@ -348,7 +348,7 @@ def SingletonTuple(*args: T) -> tuple[T]:  # noqa: N802
     ...     y = dilib.Object(2)
     ...     values = dilib.SingletonTuple(x, y)
     """
-    # Cast because the return type will act like a tuple of T
+    # Cast because the return type will act like a tuple of `T`.
     return cast("tuple[T]", _Singleton(tuple, args))
 
 
@@ -361,7 +361,7 @@ def SingletonList(*args: T) -> list[T]:  # noqa: N802
     ...     y = dilib.Object(2)
     ...     values = dilib.SingletonList(x, y)
     """
-    # Cast because the return type will act like a list of T
+    # Cast because the return type will act like a list of `T`.
     return cast("list[T]", _Singleton(list, args))
 
 
@@ -382,10 +382,10 @@ def SingletonDict(  # noqa: N802
     ...     also_values = dilib.SingletonDict({"x": x, "y": y})
     """
     if values is None:
-        # Cast because the return type will act like a dict of T
+        # Cast because the return type will act like a dict of `T`.
         return cast("dict[Any, T]", _Singleton(dict, **kwargs))
     else:
-        # Cast because the return type will act like a dict of T
+        # Cast because the return type will act like a dict of `T`.
         return cast(
             "dict[Any, T]",
             _Singleton(_union_dict_and_kwargs, values, **kwargs),

@@ -14,7 +14,7 @@
     // Python
     // ------------------------------------------------
     // Interpreter
-    "python.defaultInterpreterPath": ".venv/bin/python",
+    "python.defaultInterpreterPath": ".pixi/envs/dev/bin/python",
     // Editor
     "[python]": {
         "editor.defaultFormatter": "charliermarsh.ruff",

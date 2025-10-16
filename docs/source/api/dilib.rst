@@ -9,53 +9,53 @@ dilib.config module
 
 .. automodule:: dilib.config
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:
 
 dilib.container module
 ----------------------
 
 .. automodule:: dilib.container
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:
 
 dilib.errors module
 -------------------
 
 .. automodule:: dilib.errors
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:
 
 dilib.specs module
 ------------------
 
 .. automodule:: dilib.specs
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:
 
 dilib.utils module
 ------------------
 
 .. automodule:: dilib.utils
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:
 
 dilib.version module
 --------------------
 
 .. automodule:: dilib.version
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:
 
 Module contents
 ---------------
 
 .. automodule:: dilib
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:

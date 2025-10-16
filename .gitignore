@@ -178,3 +178,8 @@ cython_debug/
 
 # uv
 uv.lock
+
+# pixi
+.pixi/*
+!.pixi/config.toml
+pixi.lock

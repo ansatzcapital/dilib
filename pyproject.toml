@@ -1,6 +1,6 @@
 [build-system]
-requires = ["setuptools >= 42", "setuptools_scm[toml] >= 3.4"]
-build-backend = "setuptools.build_meta"
+requires = ["hatchling", "hatch-vcs"]
+build-backend = "hatchling.build"
 
 [project]
 name = "dilib"
@@ -26,6 +26,7 @@ classifiers = [
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
     "Programming Language :: Python :: Implementation :: CPython",
     "Programming Language :: Python :: Implementation :: PyPy",
     "Topic :: Software Development :: Libraries",
@@ -34,33 +35,6 @@ classifiers = [
 
 dependencies = ["typing_extensions>=4.4.0"]
 
-[project.optional-dependencies]
-build = ["build>=1.0.3", "twine>=4.0.2", "wheel"]
-docs = [
-    "myst-parser>=3.0.0",
-    "pydata-sphinx-theme>=0.14.0",
-    "sphinx>=7.0.0",
-    "sphinx-copybutton>=0.5.2",
-]
-setup = [
-    "nox>=2024.10.9",
-    "setuptools >= 42",
-    "setuptools_scm[toml] >= 3.4",
-    "uv>=0.4.20",
-]
-test = [
-    # Tools
-    "mypy>=1.8.0",
-    "pytest>=7.4.4",
-    "pytest-xdist>=3.5.0",
-    # TODO: Remove max version when this is released: https://github.com/microsoft/pyright/pull/10494
-    "pyright>=1.1.344,<1.1.401",
-    "ruff>=0.1.8",
-]
-# See https://github.com/astral-sh/uv/issues/4762#issuecomment-2207423858
-# regarding `all` trick
-all = ["dilib[build]", "dilib[docs]", "dilib[setup]", "dilib[test]"]
-
 [project.urls]
 "Homepage" = "https://github.com/ansatzcapital/dilib"
 "Documentation" = "https://ansatzcapital.github.io/dilib"
@@ -68,20 +42,131 @@ all = ["dilib[build]", "dilib[docs]", "dilib[setup]", "dilib[test]"]
 "Source" = "https://github.com/ansatzcapital/dilib"
 "Tracker" = "https://github.com/ansatzcapital/dilib/issues"
 
-[tool.setuptools.packages.find]
-# where = ["python/"]
+[dependency-groups]
+common = [
+    "hatch>=1.14.1,<2",
+    "hatchling>=1.27.0",
+    "hatch-vcs>=0.4.0",
+    "rust-just>=1.43.0,<2",
+]
+build = [
+    "twine>=4.0.2",
+    "uv>=0.8.0",
+]
+docs = [
+    "myst-parser>=3.0.0",
+    "pydata-sphinx-theme>=0.14.0",
+    "sphinx>=7.0.0",
+    "sphinx-copybutton>=0.5.2",
+]
+# Collapse to `test` when https://github.com/prefix-dev/pixi/pull/4729
+# is released.
+test-common = [
+    "mypy>=1.14.0,<1.15",
+    "pytest>=7.4.4",
+    "pytest-xdist>=3.5.0",
+    "pyright>=1.1.406,<1.1.407",
+    "ruff>=0.1.8",
+]
+test = [
+    { include-group = "common" },
+    { include-group = "test-common" },
+]
+dev = [
+    { include-group = "common" },
+    { include-group = "build" },
+    { include-group = "docs" },
+    { include-group = "test-common" },
+]
 
-[tool.setuptools.package-data]
-"dilib" = ["py.typed"]
+[tool.hatch.version]
+# See https://github.com/ofek/hatch-vcs.
+source = "vcs"
 
-[tool.setuptools_scm]
-write_to = "dilib/version.py"
+[tool.hatch.build.hooks.vcs]
+version-file = "dilib/version.py"
 
-# Using default version scheme
+[tool.pixi.workspace]
+channels = ["conda-forge"]
+platforms = ["win-64", "linux-64", "osx-64", "osx-arm64"]
+
+[tool.pixi.feature.dev.dependencies]
+act = ">=0.2.82,<0.3"
+
+[tool.pixi.feature.local-dev.pypi-dependencies]
+dilib = { path = ".", editable = true }
+
+[tool.pixi.feature.py38.dependencies]
+python = "~=3.8.0"
+
+[tool.pixi.feature.py39.dependencies]
+python = "~=3.9.0"
+
+[tool.pixi.feature.py310.dependencies]
+python = "~=3.10.0"
+
+[tool.pixi.feature.py311.dependencies]
+python = "~=3.11.0"
+
+[tool.pixi.feature.py312.dependencies]
+python = "~=3.12.0"
+
+[tool.pixi.feature.py313.dependencies]
+python = "~=3.13.0"
+
+[tool.pixi.feature.py314.dependencies]
+python = "~=3.14.0"
+
+[tool.pixi.environments]
+default = { solve-group = "default" }
+
+dev = { features = ["local-dev", "dev", "py313"], solve-group = "default" }
+
+test-py38 = { features = [
+    "local-dev",
+    "test",
+    "py38",
+], solve-group = "test-py38" }
+
+test-py39 = { features = [
+    "local-dev",
+    "test",
+    "py39",
+], solve-group = "test-py39" }
+
+test-py310 = { features = [
+    "local-dev",
+    "test",
+    "py310",
+], solve-group = "test-py310" }
+
+test-py311 = { features = [
+    "local-dev",
+    "test",
+    "py311",
+], solve-group = "test-py311" }
+
+test-py312 = { features = [
+    "local-dev",
+    "test",
+    "py312",
+], solve-group = "test-py312" }
+
+test-py313 = { features = [
+    "local-dev",
+    "test",
+    "py313",
+], solve-group = "test-py313" }
+
+test-py314 = { features = [
+    "local-dev",
+    "test",
+    "py314",
+], solve-group = "test-py314" }
 
 [tool.mypy]
 # Adapted from https://careers.wolt.com/en/blog/tech/professional-grade-mypy-configuration
-# and https://justincaustin.com/blog/mypy-tips-and-tricks/
+# and https://justincaustin.com/blog/mypy-tips-and-tricks/.
 disallow_untyped_defs = true
 check_untyped_defs = true
 no_implicit_optional = true
@@ -90,14 +175,14 @@ show_error_codes = true
 warn_unused_ignores = true
 disallow_any_generics = true
 disallow_incomplete_defs = true
-# Many third-party libraries are not properly typed
+# Many third-party libraries are not properly typed.
 # disallow_untyped_calls = true
 # disallow_untyped_decorators = true
 follow_imports = "normal"
 ignore_missing_imports = true
-# Many third-party libraries don't explicitly export public API
+# Many third-party libraries don't explicitly export public API.
 # no_implicit_reexport = true
-# Aesthetic preference
+# Aesthetic preference.
 # show_error_context = true
 strict_equality = true
 strict_optional = true
@@ -106,8 +191,11 @@ warn_redundant_casts = true
 # See https://mypy-lang.blogspot.com/2023/08/mypy-15-released.html
 enable_error_code = ["explicit-override"]
 
+# See https://mypy-lang.blogspot.com/2025/05/mypy-116-released.html.
+exclude_gitignore = true
+
 disable_error_code = [
-    # See https://github.com/python/mypy/issues/4717
+    # See https://github.com/python/mypy/issues/4717.
     "type-abstract",
 ]
 
@@ -141,6 +229,7 @@ exclude = [
     ".mypy_cache",
     ".nox",
     ".pants.d",
+    ".pixi",
     ".pytest_cache",
     ".pytype",
     ".ruff_cache",
