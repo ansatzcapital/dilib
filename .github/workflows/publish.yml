@@ -34,7 +34,7 @@ jobs:
           cache: false
 
       - name: Create packages
-        run: pixi run -e dev --frozen --locked build
+        run: pixi run -e dev --frozen --locked just build
 
       #    - name: Publish distribution 📦 to Test PyPI
       #      uses: pypa/gh-action-pypi-publish@release/v1
