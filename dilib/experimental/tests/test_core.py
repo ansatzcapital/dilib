@@ -12,7 +12,6 @@ from dilib.experimental import (
     cache,
     call,
     container,
-    load_config,
 )
 
 
@@ -62,12 +61,6 @@ class DefaultCar(Car):
         self.engine.start_engine()
 
 
-@dataclasses.dataclass(frozen=True)
-class EngineConfig:
-    host: str
-    port: int
-
-
 @container
 class CommonContainer(Container):
     @call
@@ -78,11 +71,14 @@ class CommonContainer(Container):
 @container
 class EngineContainer(Container):
     common_ctr: CommonContainer
-    input_config: EngineConfig | Path
 
-    @cache
-    def config(self) -> EngineConfig:
-        return load_config(self.input_config, EngineConfig)
+    @call
+    def host(self) -> str:
+        return "abc"
+
+    @call
+    def port(self) -> int:
+        return 1234
 
     @call
     def extra_param(self) -> int:
@@ -91,7 +87,7 @@ class EngineContainer(Container):
     @cache
     def engine(self) -> Engine:
         return DatabaseEngine(
-            self.config.host, self.config.port, extra_param=self.extra_param
+            self.host, self.port, extra_param=self.extra_param
         )
 
 
@@ -128,10 +124,7 @@ class CarContainer(Container):
 
 def test_basic() -> None:
     ctr = CarContainer.create_container(
-        {
-            EngineContainer: {"input_config": EngineConfig("abc", 1234)},
-            WheelContainer: {"input_snow_tire": True},
-        }
+        {WheelContainer: {"input_snow_tire": True}}
     )
 
     assert ctr.common_ctr is ctr.engine_ctr.common_ctr

@@ -264,10 +264,10 @@ def container(cls: type[T]) -> type[T]:
     return dataclasses.dataclass(unsafe_hash=True)(cls)
 
 
-def load_config(value: T | str | Path, cls: type[T]) -> T:
-    if isinstance(value, (str, Path)):
-        converter = cattrs.Converter()
-        data = json.load(Path(value).open("rb"))
-        return converter.structure(data, cls)
+# def load_config(value: T | str | Path, cls: type[T]) -> T:
+#     if isinstance(value, (str, Path)):
+#         converter = cattrs.Converter()
+#         data = json.load(Path(value).open("rb"))
+#         return converter.structure(data, cls)
 
-    return value
+#     return value
