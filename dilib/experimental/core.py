@@ -37,7 +37,7 @@ class FrozenContainerError(ContainerError):
 def nested_get_value(obj: object, key: str) -> object:
     for key_part in key.split("."):
         if isinstance(obj, Container):
-            obj = obj._get_value(key_part)
+            obj = obj._get(key_part)
         else:
             obj = getattr(obj, key_part)
     return obj
@@ -50,7 +50,7 @@ def nested_set_value(obj: object, key: str, value: object) -> None:
             obj = getattr(obj, key_part)
         else:
             assert isinstance(obj, Container)
-            obj._set_value(key_part, value)
+            obj._set(key_part, value)
 
 
 @dataclasses.dataclass(kw_only=True)
@@ -96,21 +96,21 @@ class Container:
                 + "`freeze()` was directly called"
             )
 
-    def _get_value(self, key: str) -> object:
+    def _get(self, key: str) -> object:
         return self._instance_cache[key]
 
-    def get_value(self, key: str) -> object:
+    def get(self, key: str) -> object:
         self.freeze()
 
         return nested_get_value(self, key)
 
-    def _set_value(self, key: str, value: object) -> None:
+    def _set(self, key: str, value: object) -> None:
         if key not in self._keys:
             raise NewKeyConfigError(key)
 
         self._instance_cache[key] = value
 
-    def set_value(self, key: str, value: object) -> None:
+    def set(self, key: str, value: object) -> None:
         self._check_not_frozen()
 
         return nested_set_value(self, key, value)
@@ -135,7 +135,7 @@ class Container:
         return hash(self.__class__)
 
     @classmethod
-    def _create_container(
+    def _create(
         cls: type[TC],
         ctr_cache: dict[type[Container], Container],
         params: dict[type[Container], dict[str, object]] | None = None,
@@ -166,9 +166,7 @@ class Container:
                         "Cannot set defaults for child containers"
                     )
 
-                child_ctr = field_annotation._create_container(
-                    ctr_cache, params=params
-                )
+                child_ctr = field_annotation._create(ctr_cache, params=params)
                 child_ctrs.append(child_ctr)
                 ctr_kwargs[field.name] = child_ctr
             elif cls_params is not None and field.name in cls_params:
@@ -184,11 +182,11 @@ class Container:
         return ctr
 
     @classmethod
-    def create_container(
+    def create(
         cls: type[TC],
         params: dict[type[Container], dict[str, object]] | None = None,
     ) -> TC:
-        return cls._create_container(ctr_cache={}, params=params)
+        return cls._create(ctr_cache={}, params=params)
 
 
 TC = TypeVar("TC", bound=Container)
@@ -217,7 +215,7 @@ class Prototype(Generic[TC, R]):
 
     def __set__(self, obj: TC, value: R) -> None:
         key = self.func.__name__
-        obj.set_value(key, value)
+        obj.set(key, value)
 
 
 @dataclasses.dataclass(frozen=True)
@@ -240,7 +238,7 @@ class Singleton(Generic[TC, R]):
         obj._keys.add(key)
 
         try:
-            value = cast(R, obj.get_value(key))
+            value = cast(R, obj.get(key))
         except KeyError:
             value = self.func(obj)
             obj._instance_cache[key] = value
@@ -249,7 +247,7 @@ class Singleton(Generic[TC, R]):
 
     def __set__(self, obj: TC, value: R) -> None:
         key = self.func.__name__
-        obj.set_value(key, value)
+        obj.set(key, value)
 
 
 def call(func: Callable[[TC], R]) -> Prototype[TC, R]:

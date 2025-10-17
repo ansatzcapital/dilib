@@ -123,9 +123,7 @@ class CarContainer(Container):
 
 
 def test_basic() -> None:
-    ctr = CarContainer.create_container(
-        {WheelContainer: {"input_snow_tire": True}}
-    )
+    ctr = CarContainer.create({WheelContainer: {"input_snow_tire": True}})
 
     assert ctr.common_ctr is ctr.engine_ctr.common_ctr
     assert ctr.common_ctr is ctr.wheel_ctr.common_ctr
@@ -154,7 +152,7 @@ def test_basic() -> None:
 
 
 def test_perturb() -> None:
-    ctr = CarContainer.create_container({WheelContainer: {"snow_tire": True}})
+    ctr = CarContainer.create({WheelContainer: {"snow_tire": True}})
 
     ctr.engine_ctr.engine = MockEngine()
     ctr.wheel_ctr.snow_tire = False
