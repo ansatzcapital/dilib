@@ -154,12 +154,7 @@ def test_basic() -> None:
 
 
 def test_perturb() -> None:
-    ctr = CarContainer.create_container(
-        {
-            EngineContainer: {"input_config": EngineConfig("abc", 1234)},
-            WheelContainer: {"snow_tire": True},
-        }
-    )
+    ctr = CarContainer.create_container({WheelContainer: {"snow_tire": True}})
 
     ctr.engine_ctr.engine = MockEngine()
     ctr.wheel_ctr.snow_tire = False
