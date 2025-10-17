@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import dataclasses
+import itertools
 import json
 from pathlib import Path
 from typing import (
@@ -78,25 +79,14 @@ class Container:
             if isinstance(field_value, Container):
                 yield field_value
 
-    def _freeze(self) -> None:
+    def freeze(self) -> None:
         if self._frozen:
             return
 
         self._frozen = True
 
-        for ctr_ref in self._parent_ctrs:
-            ctr = cast(weakref.ReferenceType[Container], ctr_ref)()
-            if ctr is not None:
-                ctr._freeze()
-
-        for ctr in self._child_ctrs:
-            ctr._freeze()
-
-    def freeze(self) -> None:
-        if self._parent_ctrs:
-            raise FrozenContainerError("Can only freeze root container")
-
-        self._freeze()
+        for ctr in itertools.chain(self._parent_ctrs, self._child_ctrs):
+            ctr.freeze()
 
     def _check_not_frozen(self) -> None:
         if self._frozen:
@@ -140,6 +130,10 @@ class Container:
 
     # TODO: setattr
 
+    @override
+    def __hash__(self) -> int:
+        return hash(self.__class__)
+
     @classmethod
     def _create_container(
         cls: type[TC],
@@ -155,7 +149,7 @@ class Container:
         cls_annotations = get_type_hints(cls)
 
         ctr_kwargs: dict[str, object] = {}
-        child_ctrs: set[Container] = set()
+        child_ctrs: list[Container] = []
         for field in dataclasses.fields(cls):
             field_annotation = cls_annotations[field.name]
 
@@ -175,7 +169,7 @@ class Container:
                 child_ctr = field_annotation._create_container(
                     ctr_cache, params=params
                 )
-                child_ctrs.add(child_ctr)
+                child_ctrs.append(child_ctr)
                 ctr_kwargs[field.name] = child_ctr
             elif cls_params is not None and field.name in cls_params:
                 ctr_kwargs[field.name] = cls_params[field.name]
@@ -267,7 +261,7 @@ def cache(func: Callable[[TC], R]) -> Singleton[TC, R]:
 
 
 def container(cls: type[T]) -> type[T]:
-    return dataclasses.dataclass()(cls)
+    return dataclasses.dataclass(unsafe_hash=True)(cls)
 
 
 def load_config(value: T | str | Path, cls: type[T]) -> T:
