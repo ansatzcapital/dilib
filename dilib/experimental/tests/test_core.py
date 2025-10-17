@@ -156,3 +156,15 @@ def test_perturb() -> None:
 
     ctr.engine_ctr.engine = MockEngine()
     ctr.wheel_ctr.snow_tire = False
+
+    car = ctr.car
+    assert isinstance(car, DefaultCar)
+
+    assert isinstance(car.engine, MockEngine)
+    assert car.engine is ctr.engine_ctr.engine
+    assert (
+        not car.wheel0.snow_tire
+        and not car.wheel1.snow_tire
+        and not car.wheel2.snow_tire
+        and not car.wheel3.snow_tire
+    )
