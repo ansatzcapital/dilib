@@ -37,7 +37,7 @@ class FrozenContainerError(ContainerError):
 def nested_get_value(obj: object, key: str) -> object:
     for key_part in key.split("."):
         if isinstance(obj, Container):
-            obj = obj._get(key_part)
+            obj = obj._get_value(key_part)
         else:
             obj = getattr(obj, key_part)
     return obj
@@ -50,7 +50,7 @@ def nested_set_value(obj: object, key: str, value: object) -> None:
             obj = getattr(obj, key_part)
         else:
             assert isinstance(obj, Container)
-            obj._set(key_part, value)
+            obj._set_value(key_part, value)
 
 
 @dataclasses.dataclass(kw_only=True)
@@ -96,21 +96,21 @@ class Container:
                 + "`freeze()` was directly called"
             )
 
-    def _get(self, key: str) -> object:
+    def _get_value(self, key: str) -> object:
         return self._instance_cache[key]
 
-    def get(self, key: str) -> object:
+    def get_value(self, key: str) -> object:
         self.freeze()
 
         return nested_get_value(self, key)
 
-    def _set(self, key: str, value: object) -> None:
+    def _set_value(self, key: str, value: object) -> None:
         if key not in self._keys:
             raise NewKeyConfigError(key)
 
         self._instance_cache[key] = value
 
-    def set(self, key: str, value: object) -> None:
+    def set_value(self, key: str, value: object) -> None:
         self._check_not_frozen()
 
         return nested_set_value(self, key, value)
@@ -215,7 +215,7 @@ class Prototype(Generic[TC, R]):
 
     def __set__(self, obj: TC, value: R) -> None:
         key = self.func.__name__
-        obj.set(key, value)
+        obj.set_value(key, value)
 
 
 @dataclasses.dataclass(frozen=True)
@@ -238,7 +238,7 @@ class Singleton(Generic[TC, R]):
         obj._keys.add(key)
 
         try:
-            value = cast(R, obj.get(key))
+            value = cast(R, obj.get_value(key))
         except KeyError:
             value = self.func(obj)
             obj._instance_cache[key] = value
@@ -247,7 +247,7 @@ class Singleton(Generic[TC, R]):
 
     def __set__(self, obj: TC, value: R) -> None:
         key = self.func.__name__
-        obj.set(key, value)
+        obj.set_value(key, value)
 
 
 def call(func: Callable[[TC], R]) -> Prototype[TC, R]:
