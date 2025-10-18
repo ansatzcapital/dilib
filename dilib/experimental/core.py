@@ -6,6 +6,7 @@ import json
 from pathlib import Path
 from typing import (
     Callable,
+    ClassVar,
     Generic,
     Iterable,
     TypeVar,
@@ -64,9 +65,6 @@ class Container:
     _instance_cache: dict[str, object] = dataclasses.field(
         default_factory=dict, init=False, hash=False, compare=False, repr=False
     )
-    _keys: set[str] = dataclasses.field(
-        default_factory=set, init=False, hash=False, compare=False, repr=False
-    )
     _parent_ctrs: weakref.WeakSet[Container] = dataclasses.field(
         default_factory=weakref.WeakSet,
         init=False,
@@ -74,6 +72,8 @@ class Container:
         compare=False,
         repr=False,
     )
+
+    _keys: ClassVar[set[str]]
 
     @property
     def _child_ctrs(self) -> Iterable[Container]:
@@ -170,9 +170,7 @@ class Container:
         for field in dataclasses.fields(cls):
             field_annotation = cls_annotations[field.name]
 
-            if field.name in {"_frozen", "_instance_cache"}:
-                continue
-            elif isinstance(field_annotation, type) and issubclass(
+            if isinstance(field_annotation, type) and issubclass(
                 field_annotation, Container
             ):
                 if (
@@ -214,6 +212,15 @@ TC = TypeVar("TC", bound=Container)
 class Prototype(Generic[TC, R]):
     func: Callable[[TC], R]
 
+    @property
+    def key(self) -> str:
+        return self.func.__name__
+
+    def __set_name__(self, owner: type[TC], name: str) -> None:
+        if not hasattr(owner, "_keys"):
+            owner._keys = set()
+        owner._keys.add(self.key)
+
     @overload
     def __get__(self, obj: None, obj_type: type[TC]) -> Self: ...
 
@@ -226,20 +233,25 @@ class Prototype(Generic[TC, R]):
         if obj is None:
             return self
 
-        key = self.func.__name__
-        obj._keys.add(key)
-
         return self.func(obj)
 
     def __set__(self, obj: TC, value: R) -> None:
-        key = self.func.__name__
-        obj.set_value(key, value)
+        obj.set_value(self.key, value)
 
 
 @dataclasses.dataclass(frozen=True)
 class Singleton(Generic[TC, R]):
     func: Callable[[TC], R]
 
+    @property
+    def key(self) -> str:
+        return self.func.__name__
+
+    def __set_name__(self, owner: type[TC], name: str) -> None:
+        if not hasattr(owner, "_keys"):
+            owner._keys = set()
+        owner._keys.add(self.key)
+
     @overload
     def __get__(self, obj: None, obj_type: type[TC]) -> Self: ...
 
@@ -252,20 +264,16 @@ class Singleton(Generic[TC, R]):
         if obj is None:
             return self
 
-        key = self.func.__name__
-        obj._keys.add(key)
-
         try:
-            value = cast(R, obj.get_value(key))
+            value = cast(R, obj.get_value(self.key))
         except KeyError:
             value = self.func(obj)
-            obj._instance_cache[key] = value
+            obj._instance_cache[self.key] = value
 
         return value
 
     def __set__(self, obj: TC, value: R) -> None:
-        key = self.func.__name__
-        obj.set_value(key, value)
+        obj.set_value(self.key, value)
 
 
 def call(func: Callable[[TC], R]) -> Prototype[TC, R]:
