@@ -55,6 +55,9 @@ def nested_set_value(obj: object, key: str, value: object) -> None:
 
 @dataclasses.dataclass(kw_only=True)
 class Container:
+    # _loaded: bool = dataclasses.field(
+    #     default=False, init=False, hash=False, compare=False, repr=False
+    # )
     _frozen: bool = dataclasses.field(
         default=False, init=False, hash=False, compare=False, repr=False
     )
@@ -128,7 +131,21 @@ class Container:
     # def __setitem__(self, key: str, value: object) -> None:
     #     self.set_value(key, value)
 
-    # TODO: setattr
+    # If we enable this, then mypy thinks it's ok to add new keys,
+    # which is the exact opposite of why we had this.
+    # @override
+    # def __setattr__(self, name: str, value: object) -> None:
+    #     if not self._loaded:
+    #         super().__setattr__(name, value)
+    #         return
+
+    #     if (
+    #         name not in get_type_hints(Container).keys()
+    #         and name not in self._keys
+    #     ):
+    #         raise NewKeyConfigError()
+
+    #     super().__setattr__(name, value)
 
     @override
     def __hash__(self) -> int:
@@ -173,6 +190,7 @@ class Container:
                 ctr_kwargs[field.name] = cls_params[field.name]
 
         ctr = cls(**ctr_kwargs)
+        # ctr._loaded = True
 
         for child_ctr in child_ctrs:
             child_ctr._parent_ctrs.add(ctr)

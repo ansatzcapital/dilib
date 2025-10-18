@@ -147,8 +147,8 @@ def test_basic() -> None:
     with pytest.raises(FrozenContainerError):
         ctr.wheel_ctr.snow_tire = False
 
-    with pytest.raises(NewKeyConfigError):
-        ctr.foo = False  # type: ignore[attr-defined]
+    # with pytest.raises(NewKeyConfigError):
+    #     ctr.foo = False
 
 
 def test_perturb() -> None:
