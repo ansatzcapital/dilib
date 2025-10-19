@@ -151,11 +151,22 @@ def test_basic() -> None:
     #     ctr.foo = False
 
 
+def test_get_set_item() -> None:
+    ctr = CarContainer.create()
+
+    assert "engine_ctr.engine" in ctr
+    engine = ctr["engine_ctr.engine"]
+    assert isinstance(engine, DatabaseEngine)
+
+    with pytest.raises(FrozenContainerError):
+        ctr["engine_ctr.engine"] = MockEngine()
+
+
 def test_perturb() -> None:
     ctr = CarContainer.create({WheelContainer: {"snow_tire": True}})
 
     ctr.engine_ctr.engine = MockEngine()
-    ctr.wheel_ctr.snow_tire = False
+    ctr["wheel_ctr.snow_tire"] = False
 
     car = ctr.car
     assert isinstance(car, DefaultCar)

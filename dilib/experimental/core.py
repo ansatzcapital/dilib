@@ -35,30 +35,25 @@ class FrozenContainerError(ContainerError):
     pass
 
 
-def nested_get_value(obj: object, key: str) -> object:
-    for key_part in key.split("."):
-        if isinstance(obj, Container):
-            obj = obj._get_value(key_part)
-        else:
-            obj = getattr(obj, key_part)
-    return obj
+def nested_func(
+    ctr: Container, key: str, func: Callable[[Container, str], R]
+) -> R:
+    key_split = key.split(".")
+    for idx, key_part in enumerate(key_split):
+        if idx < len(key_split) - 1:
+            obj = ctr._get_value(key_part)
+            if not isinstance(obj, Container):
+                raise TypeError(type(obj))
 
-
-def nested_set_value(obj: object, key: str, value: object) -> None:
-    split_key = key.split(".")
-    for idx, key_part in enumerate(split_key):
-        if idx < len(split_key) - 1:
-            obj = getattr(obj, key_part)
+            ctr = obj
         else:
-            assert isinstance(obj, Container)
-            obj._set_value(key_part, value)
+            return func(ctr, key_part)
+
+    raise RuntimeError("Reached unexpected point")
 
 
 @dataclasses.dataclass(kw_only=True)
 class Container:
-    # _loaded: bool = dataclasses.field(
-    #     default=False, init=False, hash=False, compare=False, repr=False
-    # )
     _frozen: bool = dataclasses.field(
         default=False, init=False, hash=False, compare=False, repr=False
     )
@@ -73,6 +68,7 @@ class Container:
         repr=False,
     )
 
+    _field_names: ClassVar[set[str]]
     _keys: ClassVar[set[str]]
 
     @property
@@ -99,13 +95,38 @@ class Container:
                 + "`freeze()` was directly called"
             )
 
-    def _get_value(self, key: str) -> object:
-        return self._instance_cache[key]
+    def _get_value(self, key: str, *, via_get_attr: bool = False) -> object:
+        if key in self._field_names:
+            return getattr(self, key)
 
-    def get_value(self, key: str) -> object:
+        if via_get_attr:
+            return getattr(self, key)
+        else:
+            return self._instance_cache[key]
+
+    def _get_value_impl(
+        self, key: str, *, via_get_attr: bool = False
+    ) -> object:
         self.freeze()
 
-        return nested_get_value(self, key)
+        return nested_func(
+            self,
+            key,
+            lambda obj, key_part: obj._get_value(
+                key_part, via_get_attr=via_get_attr
+            ),
+        )
+
+    def get_value(self, key: str) -> object:
+        return self._get_value_impl(key)
+
+    def _contains_key(self, key: str) -> bool:
+        return key in self._field_names or key in self._keys
+
+    def contains_key(self, key: str) -> bool:
+        return nested_func(
+            self, key, lambda obj, key_part: obj._contains_key(key_part)
+        )
 
     def _set_value(self, key: str, value: object) -> None:
         if key not in self._keys:
@@ -116,36 +137,20 @@ class Container:
     def set_value(self, key: str, value: object) -> None:
         self._check_not_frozen()
 
-        return nested_set_value(self, key, value)
+        nested_func(
+            self,
+            key,
+            lambda obj, key_part: obj._set_value(key_part, value),
+        )
 
-    # @override
-    # def __getattribute__(self, key: str) -> object:
-    #     value = super().__getattribute__(key)
-    #     return value
+    def __contains__(self, key: str) -> bool:
+        return self.contains_key(key)
 
-    # def __getitem__(self, key: str) -> object:
-    #     return self.get_value(key)
+    def __getitem__(self, key: str) -> object:
+        return self._get_value_impl(key, via_get_attr=True)
 
-    # TODO: contains
-
-    # def __setitem__(self, key: str, value: object) -> None:
-    #     self.set_value(key, value)
-
-    # If we enable this, then mypy thinks it's ok to add new keys,
-    # which is the exact opposite of why we had this.
-    # @override
-    # def __setattr__(self, name: str, value: object) -> None:
-    #     if not self._loaded:
-    #         super().__setattr__(name, value)
-    #         return
-
-    #     if (
-    #         name not in get_type_hints(Container).keys()
-    #         and name not in self._keys
-    #     ):
-    #         raise NewKeyConfigError()
-
-    #     super().__setattr__(name, value)
+    def __setitem__(self, key: str, value: object) -> None:
+        self.set_value(key, value)
 
     @override
     def __hash__(self) -> int:
@@ -165,9 +170,12 @@ class Container:
         cls_params = params.get(cls) if params is not None else None
         cls_annotations = get_type_hints(cls)
 
+        field_names: set[str] = set()
         ctr_kwargs: dict[str, object] = {}
         child_ctrs: list[Container] = []
         for field in dataclasses.fields(cls):
+            field_names.add(field.name)
+
             field_annotation = cls_annotations[field.name]
 
             if isinstance(field_annotation, type) and issubclass(
@@ -187,6 +195,7 @@ class Container:
             elif cls_params is not None and field.name in cls_params:
                 ctr_kwargs[field.name] = cls_params[field.name]
 
+        cls._field_names = field_names
         ctr = cls(**ctr_kwargs)
         # ctr._loaded = True
 
