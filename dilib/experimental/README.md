@@ -1,0 +1,100 @@
+# Experimental Alternate Syntax
+
+## Example
+
+TODO
+
+## Pros/Cons over Classic Syntax
+
+Pros
+
+- Fewer concepts and easier-to-understand names (e.g., no separation
+between configs and containers, no singleton specs,
+no special collection specs, no mix-in hacks). Classic syntax
+is in some ways a DSL, and this syntax is just "plain old Python"
+- Objects are very simple, native Python objects (e.g., we don't need
+to lie to the type checker that `dilib.Singleton(T) -> T`)
+- Instead of a bag of global inputs, local inputs are explicitly
+linked to their types, but available at the top level when creating
+a container
+
+Cons
+
+- More boilerplate code (e.g., need to style as a proper function,
+can't infer type from value)
+
+## Pros over Simple Alternative
+
+Why not just have a container like this?
+
+```python
+@dataclasses.dataclass(frozen=True)
+class FooContainer:
+    bar_ctr: BarContainer
+
+    @functools.cached_property
+    def host(self) -> str:
+        return "abc"
+```
+
+- Containers understand the hierarchy of parent/child containers,
+which means every object described has a globally-addressable name
+("global" with respect to the root config)
+    - E.g., this is useful in CLIs with flags like `--name bar_ctr.xyz`
+    that allows you to pass to the root container directly
+    (`foo_ctr[args.name]`)
+- We maintain self-consistency guarantee under perturbing because
+we don't allow users to perturb after *any* object in the container
+hierarchy has retrieved a value
+
+## Pattern: Load Config from File
+
+```python
+import json
+from pathlib import Path
+
+import cattrs
+from dilib.experimental import Container, container
+
+
+def load_config(value: T | str | Path, cls: type[T]) -> T:
+    if isinstance(value, (str, Path)):
+        converter = cattrs.Converter()
+        data = json.load(Path(value).open("rb"))
+        return converter.structure(data, cls)
+
+    return value
+
+
+@dataclasses.dataclass(frozen=True)
+class EngineConfig:
+    host: str
+    port: int
+
+
+@container
+class EngineContainer(Container):
+    input_config: EngineConfig | Path
+
+    @cache
+    def config(self) -> EngineConfig:
+        return load_config(self.input_config)
+
+    @cache
+    def extra_param(self) -> int:
+        return 123
+
+    @cache
+    def engine(self) -> Engine:
+        return DatabaseEngine(
+            self.host, self.port, extra_param=self.extra_param
+        )
+
+
+ctr0 = FooContainer.create(
+    {EngineContainer: {"input_config": Path("config.json")}}
+)
+ctr1 = FooContainer.create(
+    {EngineContainer: {"input_config": EngineConfig("abc", 8000)}}
+)
+```
