@@ -8,7 +8,6 @@ from typing_extensions import override
 from dilib.experimental import (
     Container,
     FrozenContainerError,
-    NewKeyConfigError,
     cache,
     call,
     container,
