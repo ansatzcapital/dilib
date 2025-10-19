@@ -1,6 +1,5 @@
 import abc
 import dataclasses
-from pathlib import Path
 
 import pytest
 from typing_extensions import override
