@@ -28,10 +28,21 @@ class ContainerError(RuntimeError):
 
 
 class ContainerParamsError(ContainerError):
+    """Either missing or extra container param."""
+
     pass
 
 
 class FrozenContainerError(ContainerError):
+    """Once frozen, a container cannot be perturbed.
+
+    Freezing happens when either (1) the user call `Container.freeze()`,
+    or (2) whenever any value in the container hierarchy is gotten.
+    The latter is to ensure a self-consistency guarantee
+    (i.e., every perturb is guaranteed to be reflected in every
+    downstream object).
+    """
+
     pass
 
 
@@ -54,6 +65,13 @@ def nested_func(
 
 @dataclasses.dataclass(kw_only=True)
 class Container:
+    """Create and cache (if necessary) objects.
+
+    The author of the child `Container` class describes a universe
+    of objects that depend on each other, and the container user can retrieve
+    any object in this universe by name.
+    """
+
     _frozen: bool = dataclasses.field(
         default=False, init=False, hash=False, compare=False, repr=False
     )
@@ -82,9 +100,15 @@ class Container:
         return self._field_keys.union(self._property_keys)
 
     def keys(self) -> Iterable[str]:
+        """Available fields and properties (shallow).
+
+        By shallow, we mean we don't recurse down to child containers,
+        which are also available keys to the user.
+        """
         return self._keys
 
     def freeze(self) -> None:
+        """Prevent any further perturbations."""
         if self._frozen:
             return
 
@@ -112,6 +136,7 @@ class Container:
     def get(
         self, key: str, *, default: object = dataclasses.MISSING
     ) -> object:
+        """Create and cache (if necessary) object with given key."""
         try:
             return self._get(key)
         except KeyError:
@@ -201,6 +226,19 @@ class Container:
         cls: type[TC],
         params: dict[type[Container], dict[str, object]] | None = None,
     ) -> TC:
+        """Create container and its child containers (cached by type).
+
+        E.g.:
+
+        ```python
+        ctr = CarContainer.create(
+            {
+                EngineContainer: {"input_host": "abc"},
+                WheelContainer: {"input_tire_type": TireType.SNOW},
+            }
+        )
+        ```
+        """
         return cls._create(ctr_cache={}, params=params)
 
 
@@ -276,12 +314,15 @@ class Singleton(PropertyValue[TC, R]):
 
 
 def call(func: Callable[[TC], R]) -> Prototype[TC, R]:
+    """Call this method every time this object is retrieved."""
     return Prototype(func)
 
 
 def cache(func: Callable[[TC], R]) -> Singleton[TC, R]:
+    """Call this method once upon first retrieval and cache for later use."""
     return Singleton(func)
 
 
 def container(cls: type[T]) -> type[T]:
+    """Decorate container to enable field values."""
     return dataclasses.dataclass(frozen=False, unsafe_hash=True)(cls)
