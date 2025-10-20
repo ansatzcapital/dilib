@@ -33,7 +33,7 @@ classifiers = [
     "Topic :: Utilities",
 ]
 
-dependencies = ["cattrs>=24.1.2,<26", "typing_extensions>=4.4.0"]
+dependencies = ["typing_extensions>=4.4.0"]
 
 [project.urls]
 "Homepage" = "https://github.com/ansatzcapital/dilib"
