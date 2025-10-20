@@ -129,18 +129,21 @@ class CarContainer(Container):
 
 
 def test_basic() -> None:
+    # Create container with the minimal number of required params
+    # (in this case, `EngineContainer` requires an `input_host`).
     ctr = CarContainer.create({EngineContainer: {"input_host": "abc"}})
 
+    # Child containers are cached by type.
     assert ctr.common_ctr is ctr.engine_ctr.common_ctr
     assert ctr.common_ctr is ctr.wheel_ctr.common_ctr
 
+    # Get objects and check types.
     engine = ctr.engine_ctr.engine
     assert isinstance(engine, DatabaseEngine)
-    assert engine.host == "abc"
-
     car = ctr.car
     assert isinstance(car, DefaultCar)
 
+    # Check that all the attributes are as expected.
     assert engine is car.engine
     assert (
         car.wheel0.tire_type == TireType.REGULAR
@@ -153,11 +156,13 @@ def test_basic() -> None:
     assert car.wheel0 is not car.wheel3
     assert car.wheel0 is not ctr.wheel_ctr.wheel
 
+    # We can't perturb the container once we've retrieved a value from it.
     with pytest.raises(FrozenContainerError):
         ctr.wheel_ctr.tire_type = TireType.SPORT
 
 
 def test_get_set_item() -> None:
+    # Use dict-like syntax with dotted keys.
     ctr = CarContainer.create({EngineContainer: {"input_host": "abc"}})
 
     assert "engine_ctr.engine" in ctr
@@ -169,6 +174,7 @@ def test_get_set_item() -> None:
 
 
 def test_ctr_params() -> None:
+    # Check that our container params made their way through as expected.
     ctr = CarContainer.create(
         {
             EngineContainer: {"input_host": "abc"},
@@ -184,11 +190,15 @@ def test_ctr_params() -> None:
     assert engine.host == "abc"
     assert car.wheel0.tire_type == TireType.SNOW
 
+    # We should raise an error because we're missing the required
+    # `EngineContainer` `input_host` param.
     with pytest.raises(TypeError):
         ctr = CarContainer.create(
             {WheelContainer: {"tire_type": TireType.SNOW}}
         )
 
+    # We should raise an error because we have a typo and thought the
+    # param was `tire_type` instead of the correct `input_tire_type`.
     with pytest.raises(TypeError):
         ctr = CarContainer.create(
             {
@@ -199,6 +209,7 @@ def test_ctr_params() -> None:
 
 
 def test_perturb_basic() -> None:
+    # Perturb container after creation.
     ctr = CarContainer.create(
         {
             EngineContainer: {"input_host": "abc"},
@@ -212,6 +223,7 @@ def test_perturb_basic() -> None:
     car = ctr.car
     assert isinstance(car, DefaultCar)
 
+    # Check that the perturbations override all other values.
     assert isinstance(car.engine, MockEngine)
     assert car.engine is ctr.engine_ctr.engine
     assert (
@@ -221,12 +233,14 @@ def test_perturb_basic() -> None:
         and not car.wheel3.tire_type == TireType.SPORT
     )
 
-    # No class-level interactions.
+    # Every container is its own instance, i.e.,
+    # there are no class-level interactions.
     car1 = CarContainer.create(
         {
             EngineContainer: {"input_host": "abc"},
             WheelContainer: {"input_tire_type": TireType.SNOW},
         }
     ).car
+    assert car is not car1
     assert isinstance(car1, DefaultCar)
     assert car1.wheel0.tire_type == TireType.SNOW
