@@ -1,6 +1,7 @@
 import abc
 import dataclasses
 import enum
+from typing import Any
 
 import pytest
 from typing_extensions import override
@@ -144,6 +145,10 @@ def test_basic() -> None:
     assert isinstance(car, DefaultCar)
 
     # Check that all the attributes are as expected.
+    # Note that all values decorated with `@cache` (i.e., they're
+    # singletons) are the same instance throughout, but all values
+    # decorated with `@call` (i.e., they're prototypes)
+    # get created on every call.
     assert engine is car.engine
     assert (
         car.wheel0.tire_type == TireType.REGULAR
@@ -161,7 +166,25 @@ def test_basic() -> None:
         ctr.wheel_ctr.tire_type = TireType.SPORT
 
 
-def test_get_set_item() -> None:
+def test_typing() -> None:
+    # We explicitly set types to show that the type checker understands
+    # everything.
+    ctr: CarContainer = CarContainer.create(
+        {EngineContainer: {"input_host": "abc"}}
+    )
+
+    _0: CommonContainer = ctr.common_ctr
+    _1: EngineContainer = ctr.engine_ctr
+    _2: WheelContainer = ctr.wheel_ctr
+
+    _3: Car = ctr.car
+    _4: Engine = ctr.engine_ctr.engine
+    _5: Wheel = ctr.wheel_ctr.wheel
+
+    _6: str = ctr.engine_ctr.input_host
+
+
+def test_dict_like() -> None:
     # Use dict-like syntax with dotted keys.
     ctr = CarContainer.create({EngineContainer: {"input_host": "abc"}})
 
@@ -169,8 +192,12 @@ def test_get_set_item() -> None:
     engine = ctr["engine_ctr.engine"]
     assert isinstance(engine, DatabaseEngine)
 
+    assert "engine_ctr.foo" not in ctr
+
     with pytest.raises(FrozenContainerError):
         ctr["engine_ctr.engine"] = MockEngine()
+
+    assert ctr.keys() == {"common_ctr", "engine_ctr", "wheel_ctr", "car"}
 
 
 def test_ctr_params() -> None:
@@ -244,3 +271,50 @@ def test_perturb_basic() -> None:
     assert car is not car1
     assert isinstance(car1, DefaultCar)
     assert car1.wheel0.tire_type == TireType.SNOW
+
+
+@dataclasses.dataclass(frozen=True)
+class Foo:
+    x: int
+    y: float
+    z: str
+
+
+@dataclasses.dataclass(frozen=True)
+class Bar:
+    foo0: Foo
+    foo1: Foo
+
+
+@container
+class ClassicMigrationContainer(Container):
+    x: int = 1
+
+    @cache
+    def _foo_kwargs0(self) -> dict[str, Any]:
+        # Example of delayed collection and partial/lazy kwargs.
+        return {"x": self.x}
+
+    @cache
+    def _foo_kwargs1(self) -> dict[str, Any]:
+        # Example of delayed collection and partial/lazy kwargs.
+        return {"y": 10.0}
+
+    @cache
+    def foo0(self) -> Foo:
+        # Example of combining partial/lazy kwargs.
+        return Foo(**self._foo_kwargs0, **self._foo_kwargs1, z="abc")
+
+    @cache
+    def bar(self) -> Bar:
+        # Second param here is an example of anonymous construction.
+        return Bar(foo0=self.foo0, foo1=Foo(2, 20.0, "def"))
+
+
+def test_classic_migration() -> None:
+    ctr = ClassicMigrationContainer.create()
+
+    assert ctr.foo0 == Foo(1, 10.0, "abc")
+
+    assert ctr.bar.foo0 is ctr.foo0
+    assert ctr.bar.foo1 == Foo(2, 20.0, "def")

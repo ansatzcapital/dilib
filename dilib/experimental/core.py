@@ -78,8 +78,11 @@ class Container:
             yield getattr(self, key)
 
     @functools.cached_property
-    def keys(self) -> set[str]:
+    def _keys(self) -> set[str]:
         return self._field_keys.union(self._property_keys)
+
+    def keys(self) -> Iterable[str]:
+        return self._keys
 
     def freeze(self) -> None:
         if self._frozen:
@@ -99,7 +102,7 @@ class Container:
             )
 
     def _get(self, key: str) -> object:
-        if key not in self.keys:
+        if key not in self.keys():
             raise KeyError(key)
 
         self._check_not_frozen()
@@ -127,7 +130,7 @@ class Container:
 
     def __contains__(self, key: str) -> bool:
         return nested_func(
-            self, key, lambda ctr, key_part: key_part in ctr.keys
+            self, key, lambda ctr, key_part: key_part in ctr.keys()
         )
 
     def __setitem__(self, key: str, value: object) -> None:
