@@ -1,3 +1,4 @@
+# ruff: noqa: UP006
 from __future__ import annotations
 
 import abc
@@ -5,10 +6,14 @@ import dataclasses
 import functools
 import itertools
 from typing import (
+    TYPE_CHECKING,
     Callable,
     ClassVar,
+    Dict,
     Generic,
     Iterable,
+    Set,
+    Type,
     TypeVar,
     cast,
     get_type_hints,
@@ -83,10 +88,10 @@ class Container:
     _frozen: bool = dataclasses.field(
         default=False, init=False, hash=False, compare=False, repr=False
     )
-    _instance_cache: dict[str, object] = dataclasses.field(
+    _instance_cache: Dict[str, object] = dataclasses.field(
         default_factory=dict, init=False, hash=False, compare=False, repr=False
     )
-    _parent_ctrs: weakref.WeakSet[Container] = dataclasses.field(
+    _parent_ctrs: ContainerWeakSet = dataclasses.field(
         default_factory=weakref.WeakSet,
         init=False,
         hash=False,
@@ -94,9 +99,9 @@ class Container:
         repr=False,
     )
 
-    _field_keys: ClassVar[set[str]]
-    _child_ctr_keys: ClassVar[set[str]]
-    _property_keys: ClassVar[set[str]]
+    _field_keys: ClassVar[Set[str]]
+    _child_ctr_keys: ClassVar[Set[str]]
+    _property_keys: ClassVar[Set[str]]
 
     @property
     def _child_ctrs(self) -> Iterable[Container]:
@@ -104,7 +109,7 @@ class Container:
             yield getattr(self, key)
 
     @functools.cached_property
-    def _keys(self) -> set[str]:
+    def _keys(self) -> Set[str]:
         return self._field_keys.union(self._property_keys)
 
     def keys(self) -> Iterable[str]:
@@ -175,9 +180,9 @@ class Container:
 
     @classmethod
     def _create(
-        cls: type[TC],
-        ctr_cache: dict[type[Container], Container],
-        params: dict[type[Container], dict[str, object]] | None = None,
+        cls: Type[TC],
+        ctr_cache: Dict[Type[Container], Container],
+        params: Dict[Type[Container], Dict[str, object]] | None = None,
     ) -> TC:
         try:
             return cast(TC, ctr_cache[cls])
@@ -187,10 +192,10 @@ class Container:
         cls_params = params.get(cls) if params is not None else None
         cls_annotations = get_type_hints(cls)
 
-        field_keys: set[str] = set()
-        child_ctrs: dict[str, Container] = {}
+        field_keys: Set[str] = set()
+        child_ctrs: Dict[str, Container] = {}
 
-        ctr_kwargs: dict[str, object] = {}
+        ctr_kwargs: Dict[str, object] = {}
         for field in dataclasses.fields(cls):
             if field.name in PRIVATE_CONTAINER_FIELD_NAMES:
                 continue
@@ -231,8 +236,8 @@ class Container:
 
     @classmethod
     def create(
-        cls: type[TC],
-        params: dict[type[Container], dict[str, object]] | None = None,
+        cls: Type[TC],
+        params: Dict[Type[Container], Dict[str, object]] | None = None,
     ) -> TC:
         """Create container and its child containers (cached by type).
 
@@ -252,6 +257,11 @@ class Container:
 
 TC = TypeVar("TC", bound=Container)
 
+if TYPE_CHECKING:
+    ContainerWeakSet = weakref.WeakSet[Container]
+else:
+    ContainerWeakSet = weakref.WeakSet
+
 
 @dataclasses.dataclass(frozen=True)
 class PropertyValue(abc.ABC, Generic[TC, R]):
@@ -264,19 +274,19 @@ class PropertyValue(abc.ABC, Generic[TC, R]):
     @abc.abstractmethod
     def _get(self, obj: TC) -> R: ...
 
-    def __set_name__(self, owner: type[TC], name: str) -> None:
+    def __set_name__(self, owner: Type[TC], name: str) -> None:
         if not hasattr(owner, "_property_keys"):
             owner._property_keys = set()
         owner._property_keys.add(self.key)
 
     @overload
-    def __get__(self, obj: None, obj_type: type[TC]) -> Self: ...
+    def __get__(self, obj: None, obj_type: Type[TC]) -> Self: ...
 
     @overload
-    def __get__(self, obj: TC, obj_type: type[TC] | None = None) -> R: ...
+    def __get__(self, obj: TC, obj_type: Type[TC] | None = None) -> R: ...
 
     def __get__(
-        self, obj: TC | None, obj_type: type[TC] | None = None
+        self, obj: TC | None, obj_type: Type[TC] | None = None
     ) -> R | Self:
         if obj is None:
             return self
@@ -331,6 +341,6 @@ def cache(func: Callable[[TC], R]) -> Singleton[TC, R]:
     return Singleton(func)
 
 
-def container(cls: type[T]) -> type[T]:
+def container(cls: Type[T]) -> Type[T]:
     """Decorate container to enable field values."""
     return dataclasses.dataclass(frozen=False, unsafe_hash=True)(cls)
