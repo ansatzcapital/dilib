@@ -192,7 +192,10 @@ def test_dict_like() -> None:
     engine = ctr["engine_ctr.engine"]
     assert isinstance(engine, DatabaseEngine)
 
+    # Check what happens with non-existent keys.
     assert "engine_ctr.foo" not in ctr
+    with pytest.raises(KeyError):
+        ctr["engine_ctr.foo"]
 
     # Check that we can't perturb via dotted keys either.
     with pytest.raises(FrozenContainerError):
