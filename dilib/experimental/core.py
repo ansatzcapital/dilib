@@ -59,6 +59,12 @@ class FrozenContainerError(ContainerError):
     pass
 
 
+class NewContainerKeyError(ContainerError):
+    """Cannot add a new key not specified by container author."""
+
+    pass
+
+
 def nested_func(
     ctr: Container, key: str, func: Callable[[Container, str], R]
 ) -> R:
@@ -158,8 +164,16 @@ class Container:
             else:
                 return default
 
-    def _set(self, key: str, value: object) -> None:
+    def _check_before_set(self, key: str) -> None:
         self._check_not_frozen()
+
+        if key not in self.keys():
+            raise NewContainerKeyError(
+                f"Cannot set new key on container: {key!r}"
+            )
+
+    def _set(self, key: str, value: object) -> None:
+        self._check_before_set(key)
 
         setattr(self, key, value)
 
@@ -173,6 +187,15 @@ class Container:
 
     def __setitem__(self, key: str, value: object) -> None:
         nested_func(self, key, lambda ctr, key_part: ctr._set(key_part, value))
+
+    @override
+    def __setattr__(self, key: str, value: object) -> None:
+        if key in PRIVATE_CONTAINER_FIELD_NAMES:
+            return super().__setattr__(key, value)
+
+        self._check_before_set(key)
+
+        return super().__setattr__(key, value)
 
     @override
     def __hash__(self) -> int:
@@ -289,7 +312,7 @@ class PropertyValue(abc.ABC, Generic[TC, R]):
         return self._get(obj)
 
     def __set__(self, obj: TC, value: R) -> None:
-        obj._check_not_frozen()
+        obj._check_before_set(self.key)
 
         obj._instance_cache[self.key] = value
 

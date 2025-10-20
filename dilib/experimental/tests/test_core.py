@@ -11,6 +11,7 @@ from typing_extensions import override
 from dilib.experimental import (
     Container,
     FrozenContainerError,
+    NewContainerKeyError,
     cache,
     call,
     container,
@@ -111,7 +112,7 @@ class WheelContainer(Container):
 
     @call
     def wheel(self) -> Wheel:
-        return Wheel(self.input_tire_type)
+        return Wheel(self.tire_type)
 
 
 @container
@@ -264,7 +265,7 @@ def test_perturb_basic() -> None:
     )
 
     ctr.engine_ctr.engine = MockEngine()
-    ctr["wheel_ctr.snow_tire"] = TireType.SPORT
+    ctr["wheel_ctr.tire_type"] = TireType.SPORT
 
     car = ctr.car
     assert isinstance(car, DefaultCar)
@@ -273,10 +274,10 @@ def test_perturb_basic() -> None:
     assert isinstance(car.engine, MockEngine)
     assert car.engine is ctr.engine_ctr.engine
     assert (
-        not car.wheel0.tire_type == TireType.SPORT
-        and not car.wheel1.tire_type == TireType.SPORT
-        and not car.wheel2.tire_type == TireType.SPORT
-        and not car.wheel3.tire_type == TireType.SPORT
+        car.wheel0.tire_type == TireType.SPORT
+        and car.wheel1.tire_type == TireType.SPORT
+        and car.wheel2.tire_type == TireType.SPORT
+        and car.wheel3.tire_type == TireType.SPORT
     )
 
     # Every container is its own instance, i.e.,
@@ -290,6 +291,40 @@ def test_perturb_basic() -> None:
     assert car is not car1
     assert isinstance(car1, DefaultCar)
     assert car1.wheel0.tire_type == TireType.SNOW
+
+
+def test_perturb_field_value() -> None:
+    # This is not the "normal" approach to perturbing (perturbing
+    # field values instead of the property values), but it works as well.
+    ctr = CarContainer.create({EngineContainer: {"input_host": "abc"}})
+
+    # Subtle point: we can actually get field values before
+    # perturbing because we know nothing can depend on them.
+    assert ctr.engine_ctr.input_host == "abc"
+
+    ctr.engine_ctr.input_host = "def"
+    ctr.wheel_ctr.input_tire_type = TireType.SNOW
+
+    car = ctr.car
+    assert isinstance(car, DefaultCar)
+    engine = ctr.engine_ctr.engine
+    assert isinstance(engine, DatabaseEngine)
+
+    assert engine.host == "def"
+    assert car.wheel0.tire_type == TireType.SNOW
+
+    with pytest.raises(FrozenContainerError):
+        ctr.engine_ctr.input_host = "xyz"
+
+
+def test_perturb_new_key() -> None:
+    ctr = CarContainer.create({EngineContainer: {"input_host": "abc"}})
+
+    with pytest.raises(NewContainerKeyError):
+        ctr.foo = "abc"
+
+    with pytest.raises(NewContainerKeyError):
+        ctr["foo"] = "abc"
 
 
 @dataclasses.dataclass(frozen=True)

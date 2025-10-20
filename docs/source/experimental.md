@@ -152,6 +152,15 @@ def main() -> None:
     assert engine.host == "abc"
 ```
 
+## Anatomy of a Container
+
+A container is now a regular `dataclasses.dataclass(frozen=False, ...)`
+class with 2 types of values: (1) field values, which are set via
+container params upon `create(...)`, and (2) property values,
+which are lazy and created upon retrieval (in the `call` case, they're created
+over and over; in the `cache` case, they're created just once).
+Both types of values can be perturbed.
+
 ## Pros/Cons over Classic Syntax
 
 Pros
@@ -281,8 +290,6 @@ value from it (it's frozen on first get to guarantee self-consistency).
 - Primitives and cheap-to-construct objects should be decorated with
 `@call`, while complex, expensive-to-construct objects should probably be
 decorated with `@cache`.
-- We don't raise a runtime error on trying to set a new key on a container
-when perturbing because the static type checker should pick this up.
 - We no longer validate container params (the equivalent to global/local
 inputs in classic). If the user wants this, they can validate
 with a custom `__post_init__()` in their container class.
