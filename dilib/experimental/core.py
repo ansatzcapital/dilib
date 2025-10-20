@@ -249,6 +249,14 @@ class Prototype(PropertyValue[TC, R]):
     def _get(self, obj: TC) -> R:
         obj.freeze()
 
+        # Even though we never cache the result of this func call,
+        # we use the instance cache to communicate that it's been
+        # perturbed by the user.
+        try:
+            return cast(R, obj._instance_cache[self.key])
+        except KeyError:
+            pass
+
         return self.func(obj)
 
 

@@ -330,3 +330,21 @@ def test_classic_migration() -> None:
 
     assert ctr.bar.foo0 is ctr.foo0
     assert ctr.bar.foo1 == Foo(2, 20.0, "def")
+
+
+@container
+class VeryNestedContainer(Container):
+    engine_ctr: EngineContainer
+
+    @cache
+    def foo(self) -> Foo:
+        return Foo(1, 10.0, z=self.engine_ctr.common_ctr.env)
+
+
+def test_perturb_very_nested_prototype() -> None:
+    ctr = VeryNestedContainer.create({EngineContainer: {"input_host": "abc"}})
+
+    ctr.engine_ctr.common_ctr.env = "prod"
+
+    assert ctr.engine_ctr.common_ctr.env == "prod"
+    assert ctr.foo.z == "prod"
