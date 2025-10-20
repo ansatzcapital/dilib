@@ -9,7 +9,6 @@ import pytest
 from typing_extensions import override
 
 from dilib.experimental import (
-    BadContainerKeyError,
     Container,
     FrozenContainerError,
     NewContainerKeyError,
