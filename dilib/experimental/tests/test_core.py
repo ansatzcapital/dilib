@@ -185,19 +185,31 @@ def test_typing() -> None:
 
 
 def test_dict_like() -> None:
-    # Use dict-like syntax with dotted keys.
     ctr = CarContainer.create({EngineContainer: {"input_host": "abc"}})
 
+    # Get via dict-like syntax, but with dotted keys.
     assert "engine_ctr.engine" in ctr
     engine = ctr["engine_ctr.engine"]
     assert isinstance(engine, DatabaseEngine)
 
     assert "engine_ctr.foo" not in ctr
 
+    # Check that we can't perturb via dotted keys either.
     with pytest.raises(FrozenContainerError):
         ctr["engine_ctr.engine"] = MockEngine()
 
+    # Check keys are the top-level values.
     assert ctr.keys() == {"common_ctr", "engine_ctr", "wheel_ctr", "car"}
+    assert ctr.engine_ctr.keys() == {
+        "common_ctr",
+        "host",
+        "port",
+        "extra_param",
+        "engine",
+        # This arguably shouldn't show up here because it's not a
+        # perturb-able value.
+        "input_host",
+    }
 
 
 def test_ctr_params() -> None:
