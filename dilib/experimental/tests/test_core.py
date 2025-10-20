@@ -89,7 +89,7 @@ class EngineContainer(Container):
     common_ctr: CommonContainer
     host: str
     port: int = 8000
-    timeout_secs: int = 100
+    timeout_secs: int = 10
 
     @cache
     def engine(self) -> Engine:
