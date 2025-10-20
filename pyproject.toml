@@ -49,10 +49,7 @@ common = [
     "hatch-vcs>=0.4.0",
     "rust-just>=1.43.0,<2",
 ]
-build = [
-    "twine>=4.0.2",
-    "uv>=0.8.0",
-]
+build = ["twine>=4.0.2", "uv>=0.8.0"]
 docs = [
     "myst-parser>=3.0.0",
     "pydata-sphinx-theme>=0.14.0",
@@ -68,10 +65,7 @@ test-common = [
     "pyright>=1.1.406,<1.1.407",
     "ruff>=0.1.8",
 ]
-test = [
-    { include-group = "common" },
-    { include-group = "test-common" },
-]
+test = [{ include-group = "common" }, { include-group = "test-common" }]
 dev = [
     { include-group = "common" },
     { include-group = "build" },

@@ -11,7 +11,7 @@ rm -rf "source/api/modules.rst"
 # Generate API docs.
 # NB: Because of an odd choice by Sphinx,
 # all args after first one are "exclude pattern".
-sphinx-apidoc -o source/api ../dilib ../dilib/tests
+sphinx-apidoc -o source/api ../dilib ../dilib/tests ../dilib/experimental
 
 # Generate Sphinx output. TODO: Parametrize version.
 sphinx-build source build/dilib/latest -W
