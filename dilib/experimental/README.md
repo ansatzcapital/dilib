@@ -11,7 +11,7 @@ Pros
 - Fewer concepts and easier-to-understand names (e.g., no separation
 between configs and containers, no singleton specs,
 no special collection specs, no mix-in hacks). Classic syntax
-is in some ways a DSL, and this syntax is just "plain old Python"
+is in some ways a DSL, and this syntax is basically just "plain old Python"
 - Objects are very simple, native Python objects (e.g., we don't need
 to lie to the type checker that `dilib.Singleton(T) -> T`)
 - Instead of a bag of global inputs, local inputs are explicitly
@@ -37,6 +37,8 @@ class FooContainer:
         return "abc"
 ```
 
+- Child containers get created automatically, and also once per type
+(which is probably what you want to do)
 - Containers understand the hierarchy of parent/child containers,
 which means every object described has a globally-addressable name
 ("global" with respect to the root config)
