@@ -1,11 +1,19 @@
 from __future__ import annotations
 
 import abc
-from collections.abc import Callable, Iterable
 import dataclasses
 import functools
 import itertools
-from typing import ClassVar, Generic, TypeVar, cast, get_type_hints, overload
+from typing import (
+    Callable,
+    ClassVar,
+    Generic,
+    Iterable,
+    TypeVar,
+    cast,
+    get_type_hints,
+    overload,
+)
 import weakref
 
 from typing_extensions import Self, override

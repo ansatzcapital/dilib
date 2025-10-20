@@ -13,11 +13,10 @@ all the config wiring type check exactly as expected.
 
 from __future__ import annotations
 
-from collections.abc import Callable, Generator
 import contextlib
-from typing import Any, Generic, TypeAlias, TypeVar, cast
+from typing import Any, Callable, Generator, Generic, TypeVar, cast
 
-from typing_extensions import ParamSpec, Self, override
+from typing_extensions import ParamSpec, Self, TypeAlias, override
 
 import dilib.errors
 

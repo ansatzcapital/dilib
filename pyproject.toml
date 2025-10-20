@@ -8,7 +8,7 @@ dynamic = ["version"]
 description = "Dependency injection (DI) library for Python"
 readme = "README.md"
 license = { file = "LICENSE" }
-requires-python = ">=3.10"
+requires-python = ">=3.8"
 keywords = [
     "dependency injection",
     "di",
@@ -20,6 +20,8 @@ classifiers = [
     "Development Status :: 5 - Production/Stable",
     "Intended Audience :: Developers",
     "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
@@ -57,7 +59,7 @@ docs = [
 # Collapse to `test` when https://github.com/prefix-dev/pixi/pull/4729
 # is released.
 test-common = [
-    "mypy>=1.18.2,<1.19",
+    "mypy>=1.14.0,<1.15",
     "pytest>=7.4.4",
     "pytest-xdist>=3.5.0",
     "pyright>=1.1.406,<1.1.407",
@@ -88,6 +90,12 @@ act = ">=0.2.82,<0.3"
 [tool.pixi.feature.local-dev.pypi-dependencies]
 dilib = { path = ".", editable = true }
 
+[tool.pixi.feature.py38.dependencies]
+python = "~=3.8.0"
+
+[tool.pixi.feature.py39.dependencies]
+python = "~=3.9.0"
+
 [tool.pixi.feature.py310.dependencies]
 python = "~=3.10.0"
 
@@ -107,6 +115,18 @@ python = "~=3.14.0"
 default = { solve-group = "default" }
 
 dev = { features = ["local-dev", "dev", "py313"], solve-group = "default" }
+
+test-py38 = { features = [
+    "local-dev",
+    "test",
+    "py38",
+], solve-group = "test-py38" }
+
+test-py39 = { features = [
+    "local-dev",
+    "test",
+    "py39",
+], solve-group = "test-py39" }
 
 test-py310 = { features = [
     "local-dev",
@@ -190,7 +210,7 @@ filterwarnings = []
 markers = ["slow"]
 
 [tool.ruff]
-target-version = "py310"
+target-version = "py38"
 line-length = 79
 
 # Exclude a variety of commonly ignored directories.

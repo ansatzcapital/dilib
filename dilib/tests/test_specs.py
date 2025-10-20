@@ -1,8 +1,7 @@
 from __future__ import annotations
 
 import abc
-from collections.abc import Sequence
-from typing import TypeVar
+from typing import Sequence, TypeVar
 
 from typing_extensions import override
 
