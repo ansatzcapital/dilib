@@ -127,7 +127,7 @@ class CarContainer(Container):
     engine_ctr: EngineContainer
     wheel_ctr: WheelContainer
 
-    @call
+    @cache
     def car(self) -> Car:
         return DefaultCar(
             engine=self.engine_ctr.engine,
@@ -147,6 +147,8 @@ def main() -> None:
     ctr = CarContainer.create({EngineContainer: {"input_host": "abc"}})
 
     car = ctr.car
+    assert ctr.car is ctr.car
+
     engine = ctr.engine_ctr.engine
     assert car.engine is engine
     assert engine.host == "abc"
@@ -155,11 +157,13 @@ def main() -> None:
 ## Anatomy of a Container
 
 A container is now a regular `dataclasses.dataclass(frozen=False, ...)`
-class with 2 types of values: (1) field values, which are set via
-container params upon `create(...)`, and (2) property values,
-which are lazy and created upon retrieval (in the `call` case, they're created
-over and over; in the `cache` case, they're created just once).
-Both types of values can be perturbed.
+with these types of values:
+
+|Type|Examples from Above|Created|
+|-|-|-|
+|Field value|`EngineContainer.input_host`, `WheelContainer.input_tire_type`|Upon container creation (each container is created *once* per container type)|
+|`@call` property value|`EngineContainer.host`, `WheelContainer.tire_type`, `WheelContainer.wheel`|Upon *every* value retrieval|
+|`@cache` property value|`CarContainer.car`, `EngineContainer.engine`|Upon *first* value retrieval|
 
 ## Pros/Cons over Classic Syntax
 
