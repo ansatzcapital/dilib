@@ -14,5 +14,6 @@ dilib
    non_lib_alts
    lib_alts
    patterns
+   experimental
    Changelog <https://github.com/ansatzcapital/dilib/releases>
    api/index

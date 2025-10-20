@@ -1,4 +1,6 @@
-# Experimental Alternate Syntax
+# Experimental
+
+New alternate syntax that's less DSL and more "regular Python classes"
 
 ## Example
 
@@ -8,6 +10,11 @@ import dataclasses
 import enum
 
 from dilib.experimental import Container, container, cache, call
+
+
+#####################################################################
+# Model Layer
+#####################################################################
 
 
 class Engine(abc.ABC):
@@ -60,6 +67,11 @@ class DefaultCar(Car):
     @override
     def start_car(self) -> None:
         self.engine.start_engine()
+
+
+#####################################################################
+# Config/Container Layer
+#####################################################################
 
 
 @container
@@ -124,8 +136,18 @@ class CarContainer(Container):
         )
 
 
+#####################################################################
+# Application Layer
+#####################################################################
+
+
 def main() -> None:
     ctr = CarContainer.create({EngineContainer: {"input_host": "abc"}})
+
+    car = ctr.car
+    engine = ctr.engine_ctr.engine
+    assert car.engine is engine
+    assert engine.host == "abc"
 ```
 
 ## Pros/Cons over Classic Syntax
@@ -138,19 +160,22 @@ basically just a plain Python class with cached properties
 between configs and containers, no exposed singleton/prototype/etc. specs,
 no special collection specs, no mix-in hacks, no lazy kwargs,
 words like `cache` instead of `Singleton`, anonymous specs are expressed
-with regular Python construction).
+with regular Python construction)
 - Although classic syntax should work entirely with static type checkers,
 because we don't need to "lie" to the type checker
 (e.g., `dilib.Singleton(T) -> T`), we should have much more robust
-static checking across editor contexts and time
+static checking across editor/checker contexts and time
 - Instead of a bag of global inputs (which can even collide),
 local inputs are explicitly linked to their types,
 but still easily available at the top level when creating a container
+- Force user to consider when the container value type should be
+abstract instead of concrete
 
 Cons
 
-- More boilerplate code (e.g., need to style as a proper function,
-can't infer type from value)
+- More boilerplate code. Specifically, everything needs to be a proper
+Python property-style method (e.g., need to type `def ...`, can't infer
+value type)
 
 ## Pros over Simple Alternative
 
@@ -164,21 +189,35 @@ class FooContainer:
     @functools.cached_property
     def host(self) -> str:
         return "abc"
+
+    @functools.cached_property
+    def engine(self) -> Engine:
+        return DatabaseEngine(self.host)
 ```
 
-- Child containers get created automatically, and also once per type
-(which is probably what you want to do)
-- Containers understand the hierarchy of parent/child containers,
-which means every object described has a globally-addressable name
+Because with `dilib`:
+
+- Child containers get created automatically and also once per type
+(i.e., there's only ever exactly one instance of `CommonContainer`
+in every parent container in which it's referenced).
+We assume this is what you probably want to do. It's all the more
+difficult when the number of containers increase, with overlapping
+common container instances that need to be cached across parent containers.
+- Containers understand the hierarchy of parent/child containers
+and support dotted keys (e.g., `ctr["x.y.z"]`), which means
+every object now has a globally-addressable name
 ("global" with respect to the root config)
-    - E.g., this is useful in CLIs with flags like `--name bar_ctr.xyz`
-    that allows you to pass to the root container directly
-    (`foo_ctr[args.name]`)
+    - E.g., in CLIs with flags, you can have flags like `--name bar_ctr.xyz`
+    that you pass to the root container directly
+    (`ctr[args.name]`)
 - We maintain self-consistency guarantee under perturbing because
 we don't allow users to perturb after *any* object in the container
 hierarchy has retrieved a value
 
-## Pattern: Load Config from File
+## New Potential Pattern: Load Config from File
+
+If some of your config values come from a config file (e.g., JSON, YAML, TOML),
+you can use those values easily in the container:
 
 ```python
 import json
@@ -230,7 +269,7 @@ ctr1 = FooContainer.create(
 )
 ```
 
-Note that for now, if you want to perturb `ctr.config`, you'll have to provide
+Note that, for now, if you want to perturb `ctr.config`, you'll have to provide
 the entire object, but you also can't perturb a container after getting a
 value from it (it's frozen on first get to guarantee self-consistency).
 (Perhaps we should add a `set_with(func: Callable[[T], T])` method?)

@@ -244,12 +244,7 @@ class Container:
         E.g.:
 
         ```python
-        ctr = CarContainer.create(
-            {
-                EngineContainer: {"input_host": "abc"},
-                WheelContainer: {"input_tire_type": TireType.SNOW},
-            }
-        )
+        ctr = ParentContainer.create({ChildContainer: {"foo": 123}})
         ```
         """
         return cls._create(ctr_cache={}, params=params)
