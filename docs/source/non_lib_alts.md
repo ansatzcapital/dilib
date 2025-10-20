@@ -277,5 +277,4 @@ in any container or its child containers
 Though, at this point, you basically have `dilib` with *slightly* more
 verbose syntax.
 
-TODO: We should consider adding an option to specify config fields
-as properties for cases where there are a lot of [anonymous inner singletons](patterns).
+We implemented this as an [experiment](https://github.com/ansatzcapital/dilib/tree/main/dilib/experimental).

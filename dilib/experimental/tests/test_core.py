@@ -195,6 +195,8 @@ def test_dict_like() -> None:
     # Check what happens with non-existent keys.
     assert "engine_ctr.foo" not in ctr
     with pytest.raises(KeyError):
+        ctr["foo"]
+    with pytest.raises(KeyError):
         ctr["engine_ctr.foo"]
 
     # Check that we can't perturb via dotted keys either.
@@ -329,6 +331,7 @@ class ClassicMigrationContainer(Container):
 def test_classic_migration() -> None:
     ctr = ClassicMigrationContainer.create()
 
+    assert ctr._foo_kwargs0 == {"x": 1}
     assert ctr.foo0 == Foo(1, 10.0, "abc")
 
     assert ctr.bar.foo0 is ctr.foo0
