@@ -1,5 +1,6 @@
 import abc
 import dataclasses
+import enum
 
 import pytest
 from typing_extensions import override
@@ -36,9 +37,15 @@ class DatabaseEngine(Engine):
         print("Start db engine:", self.host, self.port)
 
 
+class TireType(enum.StrEnum):
+    REGULAR = enum.auto()
+    SPORT = enum.auto()
+    SNOW = enum.auto()
+
+
 @dataclasses.dataclass(frozen=True)
 class Wheel:
-    snow_tire: bool
+    tire_type: TireType
 
 
 class Car(abc.ABC):
@@ -69,10 +76,11 @@ class CommonContainer(Container):
 @container
 class EngineContainer(Container):
     common_ctr: CommonContainer
+    input_host: str
 
     @call
     def host(self) -> str:
-        return "abc"
+        return self.input_host
 
     @call
     def port(self) -> int:
@@ -92,15 +100,15 @@ class EngineContainer(Container):
 @container
 class WheelContainer(Container):
     common_ctr: CommonContainer
-    input_snow_tire: bool = False
+    input_tire_type: TireType = TireType.REGULAR
 
     @call
-    def snow_tire(self) -> bool:
-        return self.input_snow_tire
+    def tire_type(self) -> TireType:
+        return self.input_tire_type
 
     @call
     def wheel(self) -> Wheel:
-        return Wheel(self.snow_tire)
+        return Wheel(self.input_tire_type)
 
 
 @container
@@ -121,21 +129,24 @@ class CarContainer(Container):
 
 
 def test_basic() -> None:
-    ctr = CarContainer.create({WheelContainer: {"input_snow_tire": True}})
+    ctr = CarContainer.create({EngineContainer: {"input_host": "abc"}})
 
     assert ctr.common_ctr is ctr.engine_ctr.common_ctr
     assert ctr.common_ctr is ctr.wheel_ctr.common_ctr
 
     engine = ctr.engine_ctr.engine
+    assert isinstance(engine, DatabaseEngine)
+    assert engine.host == "abc"
+
     car = ctr.car
     assert isinstance(car, DefaultCar)
 
     assert engine is car.engine
     assert (
-        car.wheel0.snow_tire
-        and car.wheel1.snow_tire
-        and car.wheel2.snow_tire
-        and car.wheel3.snow_tire
+        car.wheel0.tire_type == TireType.REGULAR
+        and car.wheel1.tire_type == TireType.REGULAR
+        and car.wheel2.tire_type == TireType.REGULAR
+        and car.wheel3.tire_type == TireType.REGULAR
     )
     assert car.wheel0 is not car.wheel1
     assert car.wheel0 is not car.wheel2
@@ -143,11 +154,11 @@ def test_basic() -> None:
     assert car.wheel0 is not ctr.wheel_ctr.wheel
 
     with pytest.raises(FrozenContainerError):
-        ctr.wheel_ctr.snow_tire = False
+        ctr.wheel_ctr.tire_type = TireType.SPORT
 
 
 def test_get_set_item() -> None:
-    ctr = CarContainer.create()
+    ctr = CarContainer.create({EngineContainer: {"input_host": "abc"}})
 
     assert "engine_ctr.engine" in ctr
     engine = ctr["engine_ctr.engine"]
@@ -157,11 +168,46 @@ def test_get_set_item() -> None:
         ctr["engine_ctr.engine"] = MockEngine()
 
 
-def test_perturb() -> None:
-    ctr = CarContainer.create({WheelContainer: {"snow_tire": True}})
+def test_ctr_params() -> None:
+    ctr = CarContainer.create(
+        {
+            EngineContainer: {"input_host": "abc"},
+            WheelContainer: {"input_tire_type": TireType.SNOW},
+        }
+    )
+
+    engine = ctr.engine_ctr.engine
+    assert isinstance(engine, DatabaseEngine)
+    car = ctr.car
+    assert isinstance(car, DefaultCar)
+
+    assert engine.host == "abc"
+    assert car.wheel0.tire_type == TireType.SNOW
+
+    with pytest.raises(TypeError):
+        ctr = CarContainer.create(
+            {WheelContainer: {"tire_type": TireType.SNOW}}
+        )
+
+    with pytest.raises(TypeError):
+        ctr = CarContainer.create(
+            {
+                EngineContainer: {"input_host": "abc"},
+                WheelContainer: {"tire_type": TireType.SNOW},
+            }
+        )
+
+
+def test_perturb_basic() -> None:
+    ctr = CarContainer.create(
+        {
+            EngineContainer: {"input_host": "abc"},
+            WheelContainer: {"input_tire_type": TireType.SNOW},
+        }
+    )
 
     ctr.engine_ctr.engine = MockEngine()
-    ctr["wheel_ctr.snow_tire"] = False
+    ctr["wheel_ctr.snow_tire"] = TireType.SPORT
 
     car = ctr.car
     assert isinstance(car, DefaultCar)
@@ -169,8 +215,18 @@ def test_perturb() -> None:
     assert isinstance(car.engine, MockEngine)
     assert car.engine is ctr.engine_ctr.engine
     assert (
-        not car.wheel0.snow_tire
-        and not car.wheel1.snow_tire
-        and not car.wheel2.snow_tire
-        and not car.wheel3.snow_tire
+        not car.wheel0.tire_type == TireType.SPORT
+        and not car.wheel1.tire_type == TireType.SPORT
+        and not car.wheel2.tire_type == TireType.SPORT
+        and not car.wheel3.tire_type == TireType.SPORT
     )
+
+    # No class-level interactions.
+    car1 = CarContainer.create(
+        {
+            EngineContainer: {"input_host": "abc"},
+            WheelContainer: {"input_tire_type": TireType.SNOW},
+        }
+    ).car
+    assert isinstance(car1, DefaultCar)
+    assert car1.wheel0.tire_type == TireType.SNOW

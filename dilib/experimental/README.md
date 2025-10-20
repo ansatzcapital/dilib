@@ -8,15 +8,18 @@ TODO
 
 Pros
 
+- Classic syntax is in some ways a DSL, and this syntax is
+basically just a plain Python class with cached properties
 - Fewer concepts and easier-to-understand names (e.g., no separation
-between configs and containers, no singleton specs,
-no special collection specs, no mix-in hacks). Classic syntax
-is in some ways a DSL, and this syntax is basically just "plain old Python"
-- Objects are very simple, native Python objects (e.g., we don't need
-to lie to the type checker that `dilib.Singleton(T) -> T`)
+between configs and containers, no singleton/prototype/etc. specs,
+no special collection specs, no mix-in hacks, no lazy kwargs).
+- Although classic syntax should work entirely with static type checkers,
+because we don't need to "lie" to the type checker
+(e.g., `dilib.Singleton(T) -> T`), we should have much more robust
+static checking across editor contexts and time
 - Instead of a bag of global inputs, local inputs are explicitly
-linked to their types, but available at the top level when creating
-a container
+linked to their types, but still available at the top level when creating
+a container for ease-of-use
 
 Cons
 

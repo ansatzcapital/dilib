@@ -27,6 +27,10 @@ class ContainerError(RuntimeError):
     pass
 
 
+class ContainerParamsError(ContainerError):
+    pass
+
+
 class FrozenContainerError(ContainerError):
     pass
 
@@ -152,7 +156,9 @@ class Container:
 
         ctr_kwargs: dict[str, object] = {}
         for field in dataclasses.fields(cls):
-            if field.name not in PRIVATE_CONTAINER_FIELD_NAMES:
+            if field.name in PRIVATE_CONTAINER_FIELD_NAMES:
+                continue
+            else:
                 field_keys.add(field.name)
 
             field_annotation = cls_annotations[field.name]
@@ -171,8 +177,11 @@ class Container:
                 child_ctr = field_annotation._create(ctr_cache, params=params)
                 child_ctrs[field.name] = child_ctr
                 ctr_kwargs[field.name] = child_ctr
-            elif cls_params is not None and field.name in cls_params:
-                ctr_kwargs[field.name] = cls_params[field.name]
+
+        # NB: If there are either extra or missing params for this class,
+        # Python will raise a `TypeError` when we construct it below.
+        if cls_params is not None:
+            ctr_kwargs.update(cls_params)
 
         cls._field_keys = field_keys
         cls._child_ctr_keys = set(child_ctrs)
