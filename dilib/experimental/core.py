@@ -71,7 +71,7 @@ def nested_func(
     raise RuntimeError("Reached unexpected point")
 
 
-@dataclasses.dataclass(kw_only=True)
+@dataclasses.dataclass()
 class Container:
     """Create and cache (if necessary) objects.
 

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import abc
 import dataclasses
 import enum
@@ -38,7 +40,7 @@ class DatabaseEngine(Engine):
         print("Start db engine:", self.host, self.port)
 
 
-class TireType(enum.StrEnum):
+class TireType(enum.Enum):
     REGULAR = enum.auto()
     SPORT = enum.auto()
     SNOW = enum.auto()
