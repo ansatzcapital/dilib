@@ -1,6 +1,7 @@
 # Experimental
 
-New alternate syntax that's less DSL and more "regular Python classes"
+New alternate syntax that's less DSL and more "regular Python classes",
+inspired by writing the docs for "custom containers" in {doc}`non_lib_alts`
 
 ## Example
 
@@ -8,7 +9,6 @@ New alternate syntax that's less DSL and more "regular Python classes"
 import abc
 import dataclasses
 import enum
-
 from typing import override
 
 from dilib.experimental import Container, container, cache, call

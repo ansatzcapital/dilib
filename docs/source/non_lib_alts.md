@@ -277,4 +277,4 @@ in any container or its child containers
 Though, at this point, you basically have `dilib` with *slightly* more
 verbose syntax.
 
-We implemented this as an [experiment](https://github.com/ansatzcapital/dilib/tree/main/dilib/experimental).
+We implemented this idea in {doc}`experimental`.
