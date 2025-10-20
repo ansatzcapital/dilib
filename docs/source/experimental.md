@@ -9,6 +9,8 @@ import abc
 import dataclasses
 import enum
 
+from typing import override
+
 from dilib.experimental import Container, container, cache, call
 
 
