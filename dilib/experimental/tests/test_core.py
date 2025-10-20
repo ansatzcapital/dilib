@@ -325,17 +325,33 @@ class ClassicMigrationContainer(Container):
     @cache
     def bar(self) -> Bar:
         # Second param here is an example of anonymous construction.
-        return Bar(foo0=self.foo0, foo1=Foo(2, 20.0, "def"))
+        return Bar(foo0=self.foo0, foo1=Foo(5, 20.0, "def"))
+
+    @cache
+    def forward_bar(self) -> Bar:
+        # Example of forwarding.
+        return self.bar
+
+    @cache
+    def bar_foo0(self) -> Foo:
+        # Example of obj attr.
+        return self.bar.foo0
 
 
 def test_classic_migration() -> None:
     ctr = ClassicMigrationContainer.create()
 
-    assert ctr._foo_kwargs0 == {"x": 1}
-    assert ctr.foo0 == Foo(1, 10.0, "abc")
+    # This tests perturbation through partial kwargs and forwards.
+    ctr._foo_kwargs0 = {"x": 2}
+
+    assert ctr._foo_kwargs0 == {"x": 2}
+    assert ctr.foo0 == Foo(2, 10.0, "abc")
 
     assert ctr.bar.foo0 is ctr.foo0
-    assert ctr.bar.foo1 == Foo(2, 20.0, "def")
+    assert ctr.bar.foo1 == Foo(5, 20.0, "def")
+
+    assert ctr.bar is ctr.forward_bar
+    assert ctr.bar_foo0 is ctr.foo0
 
 
 @container
