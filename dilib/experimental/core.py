@@ -116,7 +116,10 @@ class Container:
 
     @functools.cached_property
     def _keys(self) -> Set[str]:
-        return self._field_keys.union(self._property_keys)
+        if hasattr(self.__class__, "_property_keys"):
+            return self._field_keys.union(self._property_keys)
+        else:
+            return self._field_keys
 
     def keys(self) -> Iterable[str]:
         """Available fields and properties (shallow).

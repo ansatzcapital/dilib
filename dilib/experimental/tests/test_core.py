@@ -17,6 +17,10 @@ from dilib.experimental import (
     container,
 )
 
+#####################################################################
+# Model Layer
+#####################################################################
+
 
 class Engine(abc.ABC):
     @abc.abstractmethod
@@ -34,11 +38,11 @@ class MockEngine(Engine):
 class DatabaseEngine(Engine):
     host: str
     port: int
-    extra_param: int
+    timeout_secs: int = 10
 
     @override
     def start_engine(self) -> None:
-        print("Start db engine:", self.host, self.port)
+        print("Start db engine:", self.host, self.port, self.timeout_secs)
 
 
 class TireType(enum.Enum):
@@ -70,45 +74,32 @@ class DefaultCar(Car):
         self.engine.start_engine()
 
 
+#####################################################################
+# Container Layer
+#####################################################################
+
+
 @container
 class CommonContainer(Container):
-    @call
-    def env(self) -> str:
-        return "dev"
+    env: str = "dev"
 
 
 @container
 class EngineContainer(Container):
     common_ctr: CommonContainer
-    input_host: str
-
-    @call
-    def host(self) -> str:
-        return self.input_host
-
-    @call
-    def port(self) -> int:
-        return 1234
-
-    @call
-    def extra_param(self) -> int:
-        return 123
+    host: str
+    port: int = 8000
+    timeout_secs: int = 100
 
     @cache
     def engine(self) -> Engine:
-        return DatabaseEngine(
-            self.host, self.port, extra_param=self.extra_param
-        )
+        return DatabaseEngine(self.host, self.port, self.timeout_secs)
 
 
 @container
 class WheelContainer(Container):
     common_ctr: CommonContainer
-    input_tire_type: TireType = TireType.REGULAR
-
-    @call
-    def tire_type(self) -> TireType:
-        return self.input_tire_type
+    tire_type: TireType = TireType.REGULAR
 
     @call
     def wheel(self) -> Wheel:
@@ -121,7 +112,7 @@ class CarContainer(Container):
     engine_ctr: EngineContainer
     wheel_ctr: WheelContainer
 
-    @call
+    @cache
     def car(self) -> Car:
         return DefaultCar(
             engine=self.engine_ctr.engine,
@@ -132,12 +123,17 @@ class CarContainer(Container):
         )
 
 
+#####################################################################
+# Application Layer
+#####################################################################
+
+
 def test_basic() -> None:
     # Create container with the minimal number of required params
-    # (in this case, `EngineContainer` requires an `input_host`).
-    ctr = CarContainer.create({EngineContainer: {"input_host": "abc"}})
+    # (in this case, `EngineContainer` requires `host`).
+    ctr = CarContainer.create({EngineContainer: {"host": "abc"}})
 
-    # Child containers are cached by type.
+    # Child containers are cached by type across container hierarchy.
     assert ctr.common_ctr is ctr.engine_ctr.common_ctr
     assert ctr.common_ctr is ctr.wheel_ctr.common_ctr
 
@@ -146,6 +142,8 @@ def test_basic() -> None:
     assert isinstance(engine, DatabaseEngine)
     car = ctr.car
     assert isinstance(car, DefaultCar)
+
+    assert ctr.car is ctr.car
 
     # Check that all the attributes are as expected.
     # Note that all values decorated with `@cache` (i.e., they're
@@ -172,9 +170,7 @@ def test_basic() -> None:
 def test_typing() -> None:
     # We explicitly set types to show that the type checker understands
     # everything.
-    ctr: CarContainer = CarContainer.create(
-        {EngineContainer: {"input_host": "abc"}}
-    )
+    ctr: CarContainer = CarContainer.create({EngineContainer: {"host": "abc"}})
 
     _0: CommonContainer = ctr.common_ctr
     _1: EngineContainer = ctr.engine_ctr
@@ -184,13 +180,19 @@ def test_typing() -> None:
     _4: Engine = ctr.engine_ctr.engine
     _5: Wheel = ctr.wheel_ctr.wheel
 
-    _6: str = ctr.engine_ctr.input_host
+    _6: str = ctr.engine_ctr.host
+    _7: int = ctr.engine_ctr.port
+    _8: int = ctr.engine_ctr.timeout_secs
 
 
 def test_dict_like() -> None:
-    ctr = CarContainer.create({EngineContainer: {"input_host": "abc"}})
+    ctr = CarContainer.create({EngineContainer: {"host": "abc"}})
 
-    # Get via dict-like syntax, but with dotted keys.
+    # Get field and property values via dict-like syntax, but with dotted keys.
+    assert "engine_ctr.host" in ctr
+    host = ctr["engine_ctr.host"]
+    assert host == "abc"
+
     assert "engine_ctr.engine" in ctr
     engine = ctr["engine_ctr.engine"]
     assert isinstance(engine, DatabaseEngine)
@@ -207,16 +209,23 @@ def test_dict_like() -> None:
         ctr["engine_ctr.engine"] = MockEngine()
 
     # Check keys are the top-level values.
-    assert ctr.keys() == {"common_ctr", "engine_ctr", "wheel_ctr", "car"}
-    assert ctr.engine_ctr.keys() == {
+    assert ctr.keys() == {
+        # Child containers.
         "common_ctr",
+        "engine_ctr",
+        "wheel_ctr",
+        # Property values.
+        "car",
+    }
+    assert ctr.engine_ctr.keys() == {
+        # Child containers.
+        "common_ctr",
+        # Field values
         "host",
         "port",
-        "extra_param",
+        "timeout_secs",
+        # Property values.
         "engine",
-        # This arguably shouldn't show up here because it's not a
-        # perturb-able value.
-        "input_host",
     }
 
 
@@ -224,8 +233,8 @@ def test_ctr_params() -> None:
     # Check that our container params made their way through as expected.
     ctr = CarContainer.create(
         {
-            EngineContainer: {"input_host": "abc"},
-            WheelContainer: {"input_tire_type": TireType.SNOW},
+            EngineContainer: {"host": "abc"},
+            WheelContainer: {"tire_type": TireType.SNOW},
         }
     )
 
@@ -238,19 +247,19 @@ def test_ctr_params() -> None:
     assert car.wheel0.tire_type == TireType.SNOW
 
     # We should raise an error because we're missing the required
-    # `EngineContainer` `input_host` param.
+    # `EngineContainer` `host` param.
     with pytest.raises(TypeError):
         ctr = CarContainer.create(
             {WheelContainer: {"tire_type": TireType.SNOW}}
         )
 
     # We should raise an error because we have a typo and thought the
-    # param was `tire_type` instead of the correct `input_tire_type`.
+    # param was `tyre_type` instead of the correct `tire_type`.
     with pytest.raises(TypeError):
         ctr = CarContainer.create(
             {
-                EngineContainer: {"input_host": "abc"},
-                WheelContainer: {"tire_type": TireType.SNOW},
+                EngineContainer: {"host": "abc"},
+                WheelContainer: {"tyre_type": TireType.SNOW},
             }
         )
 
@@ -259,33 +268,44 @@ def test_perturb_basic() -> None:
     # Perturb container after creation.
     ctr = CarContainer.create(
         {
-            EngineContainer: {"input_host": "abc"},
-            WheelContainer: {"input_tire_type": TireType.SNOW},
+            EngineContainer: {"host": "abc"},
+            WheelContainer: {"tire_type": TireType.SNOW},
         }
     )
 
-    ctr.engine_ctr.engine = MockEngine()
+    # Subtle point: we can actually get field values before
+    # perturbing because we know they can't depend on any other values.
+    assert ctr.engine_ctr.host == "abc"
+
+    # Pertub both field and property values.
     ctr["wheel_ctr.tire_type"] = TireType.SPORT
+    ctr.engine_ctr.host = "def"
+    ctr.engine_ctr.engine = MockEngine()
 
     car = ctr.car
     assert isinstance(car, DefaultCar)
 
     # Check that the perturbations override all other values.
-    assert isinstance(car.engine, MockEngine)
-    assert car.engine is ctr.engine_ctr.engine
     assert (
         car.wheel0.tire_type == TireType.SPORT
         and car.wheel1.tire_type == TireType.SPORT
         and car.wheel2.tire_type == TireType.SPORT
         and car.wheel3.tire_type == TireType.SPORT
     )
+    assert ctr.engine_ctr.host == "def"
+    assert isinstance(car.engine, MockEngine)
+    assert car.engine is ctr.engine_ctr.engine
+
+    # Check that we're frozen now.
+    with pytest.raises(FrozenContainerError):
+        ctr.engine_ctr.host = "xyz"
 
     # Every container is its own instance, i.e.,
     # there are no class-level interactions.
     car1 = CarContainer.create(
         {
-            EngineContainer: {"input_host": "abc"},
-            WheelContainer: {"input_tire_type": TireType.SNOW},
+            EngineContainer: {"host": "abc"},
+            WheelContainer: {"tire_type": TireType.SNOW},
         }
     ).car
     assert car is not car1
@@ -293,32 +313,8 @@ def test_perturb_basic() -> None:
     assert car1.wheel0.tire_type == TireType.SNOW
 
 
-def test_perturb_field_value() -> None:
-    # This is not the "normal" approach to perturbing (perturbing
-    # field values instead of the property values), but it works as well.
-    ctr = CarContainer.create({EngineContainer: {"input_host": "abc"}})
-
-    # Subtle point: we can actually get field values before
-    # perturbing because we know nothing can depend on them.
-    assert ctr.engine_ctr.input_host == "abc"
-
-    ctr.engine_ctr.input_host = "def"
-    ctr.wheel_ctr.input_tire_type = TireType.SNOW
-
-    car = ctr.car
-    assert isinstance(car, DefaultCar)
-    engine = ctr.engine_ctr.engine
-    assert isinstance(engine, DatabaseEngine)
-
-    assert engine.host == "def"
-    assert car.wheel0.tire_type == TireType.SNOW
-
-    with pytest.raises(FrozenContainerError):
-        ctr.engine_ctr.input_host = "xyz"
-
-
 def test_perturb_new_key() -> None:
-    ctr = CarContainer.create({EngineContainer: {"input_host": "abc"}})
+    ctr = CarContainer.create({EngineContainer: {"host": "abc"}})
 
     with pytest.raises(NewContainerKeyError):
         ctr.foo = "abc"
@@ -401,7 +397,7 @@ class VeryNestedContainer(Container):
 
 
 def test_perturb_very_nested_prototype() -> None:
-    ctr = VeryNestedContainer.create({EngineContainer: {"input_host": "abc"}})
+    ctr = VeryNestedContainer.create({EngineContainer: {"host": "abc"}})
 
     ctr.engine_ctr.common_ctr.env = "prod"
 
