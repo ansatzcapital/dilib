@@ -64,8 +64,8 @@ You could implement something similar with a simpler custom container type:
 
 ```python
 @dataclasses.dataclass(frozen=True)
-class FooContainer:
-    bar_ctr: BarContainer
+class EngineContainer:
+    common_ctr: CommonContainer
     host: str
 
     @functools.cached_property

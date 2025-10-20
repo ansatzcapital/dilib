@@ -143,7 +143,7 @@ class Container:
         if self._frozen:
             raise FrozenContainerError(
                 "Container is already frozen, "
-                + "either because a value was already gotten or "
+                + "either because a value was already retrieved or "
                 + "`freeze()` was directly called"
             )
 
