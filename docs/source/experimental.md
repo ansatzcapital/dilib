@@ -37,10 +37,11 @@ Pros
 - Classic syntax is in some ways a DSL, and this syntax is
 basically just a plain Python class with cached properties
 - Fewer concepts and easier-to-understand names (e.g., no separation
-between configs and containers, no exposed singleton/prototype/etc. specs,
+between configs and containers,
+no exposed singleton/prototype/forward/etc. specs,
 no special collection specs, no mix-in hacks, no lazy kwargs,
-words like `cache` instead of `Singleton`, anonymous specs are expressed
-with regular Python construction)
+no `container.config` confusion, words like `cache` instead of `Singleton`,
+anonymous specs are expressed with regular Python construction)
 - Although classic syntax should work entirely with static type checkers,
 because we don't need to "lie" to the type checker
 (e.g., `dilib.Singleton(T) -> T`), we should have much more robust
