@@ -9,6 +9,7 @@ import pytest
 from typing_extensions import override
 
 from dilib.experimental import (
+    BadContainerKeyError,
     Container,
     FrozenContainerError,
     NewContainerKeyError,
@@ -311,6 +312,16 @@ def test_perturb_basic() -> None:
     assert car is not car1
     assert isinstance(car1, DefaultCar)
     assert car1.wheel0.tire_type == TireType.SNOW
+
+
+def test_get_bad_key() -> None:
+    ctr = CarContainer.create({EngineContainer: {"host": "abc"}})
+
+    with pytest.raises(AttributeError):
+        _ = ctr.foo  # type: ignore[attr-defined]
+
+    with pytest.raises(KeyError):
+        ctr["foo"]
 
 
 def test_perturb_new_key() -> None:
